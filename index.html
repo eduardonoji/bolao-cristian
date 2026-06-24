@@ -438,6 +438,122 @@
       font-size: 14px;
     }
 
+    /* ---- PROFILE SHEET ---- */
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .sheet-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .sheet {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%;
+      max-width: 430px;
+      background: var(--bg-card);
+      border-radius: 20px 20px 0 0;
+      z-index: 101;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .sheet.open {
+      transform: translateX(-50%) translateY(0);
+    }
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
+    .sheet-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .sheet-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .sheet-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+    .sheet-body {
+      overflow-y: auto;
+      padding: 12px 16px 32px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .bet-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .bet-row:last-child { border-bottom: none; }
+    .bet-game {
+      flex: 1;
+      min-width: 0;
+    }
+    .bet-teams {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-primary);
+    }
+    .bet-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .bet-scores {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .bet-palpite {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .bet-result {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .bet-pts {
+      flex-shrink: 0;
+      width: 56px;
+      text-align: right;
+    }
+    .reason-chip {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .reason-exato { background: var(--green-bg); color: var(--green-text); }
+    .reason-resultado { background: var(--blue-bg); color: var(--blue-text); }
+    .reason-gol { background: var(--amber-bg); color: var(--amber-text); }
+    .reason-errou { background: var(--gray-bg); color: var(--gray-text); }
+    .reason-aguardando { background: var(--gray-bg); color: var(--text-muted); }
+
     /* Logout */
     .logout-btn {
       background: transparent;
@@ -578,6 +694,17 @@
   </div>
 
 </div><!-- .app -->
+
+<!-- PROFILE SHEET -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="closeProfile()"></div>
+<div class="sheet" id="profile-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <div class="sheet-title" id="sheet-nick"></div>
+    <div class="sheet-subtitle" id="sheet-total"></div>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+</div>
 
 <script>
 // ---- STATE ----
@@ -897,14 +1024,81 @@ function renderRanking(ranking) {
   document.getElementById('ranking-list').innerHTML = `
     <div class="ranking-list">
       ${ranking.map((u, i) => `
-        <div class="ranking-item ${u.nick === session.nick ? 'ranking-me' : ''}">
+        <div class="ranking-item ${u.nick === session.nick ? 'ranking-me' : ''}" onclick="openProfile('${u.nick}', ${u.pts})" style="cursor:pointer">
           <span class="ranking-pos ${posClass[i] || ''}">${i + 1}º</span>
           <span class="ranking-nick">${u.nick}</span>
           <span class="ranking-count">${u.count} acerto${u.count !== 1 ? 's' : ''}</span>
           <span class="ranking-pts">${u.pts} pts</span>
+          <i class="ti ti-chevron-right" style="color:var(--text-muted);font-size:16px;flex-shrink:0"></i>
         </div>
       `).join('')}
     </div>`;
+}
+
+// ---- PROFILE SHEET ----
+async function openProfile(nick, pts) {
+  document.getElementById('sheet-nick').textContent = nick + (nick === session.nick ? ' (você)' : '');
+  document.getElementById('sheet-total').textContent = `${pts} pts acumulados`;
+  document.getElementById('sheet-body').innerHTML = '<div class="spinner">Carregando...</div>';
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('profile-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const r = await fetch(`/api/bolao?action=profile&nick=${encodeURIComponent(nick)}`);
+    const data = await r.json();
+    renderProfile(data);
+  } catch (e) {
+    document.getElementById('sheet-body').innerHTML = '<div class="empty-state">Erro ao carregar.</div>';
+  }
+}
+
+function closeProfile() {
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.getElementById('profile-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+const REASON_LABEL = {
+  exato:      { label: '+10 · Exato',    cls: 'reason-exato' },
+  resultado:  { label: '+5 · Resultado', cls: 'reason-resultado' },
+  gol:        { label: '+2 · Gol certo', cls: 'reason-gol' },
+  errou:      { label: 'Errou',          cls: 'reason-errou' },
+  aguardando: { label: 'Aguardando',     cls: 'reason-aguardando' },
+};
+
+function renderProfile(data) {
+  if (!data.bets || !data.bets.length) {
+    document.getElementById('sheet-body').innerHTML = '<div class="empty-state">Nenhuma aposta registrada.</div>';
+    return;
+  }
+  document.getElementById('sheet-total').textContent = `${data.totalPts} pts acumulados · ${data.bets.length} aposta${data.bets.length !== 1 ? 's' : ''}`;
+
+  const rows = data.bets.map(b => {
+    const d = new Date(b.datetime);
+    const time = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus', hour: '2-digit', minute: '2-digit' });
+    const date = d.toLocaleDateString('pt-BR', { timeZone: 'America/Manaus', day: '2-digit', month: '2-digit' });
+    const r = REASON_LABEL[b.reason] || REASON_LABEL.aguardando;
+    const resultStr = (b.homeScore !== null && b.awayScore !== null)
+      ? `Resultado: ${b.homeScore} × ${b.awayScore}`
+      : 'Não iniciado';
+    return `
+      <div class="bet-row">
+        <div class="bet-game">
+          <div class="bet-teams">${b.home} × ${b.away}</div>
+          <div class="bet-meta">Grupo ${b.group} · ${date} ${time}</div>
+        </div>
+        <div class="bet-scores">
+          <div class="bet-palpite">Palpite: ${b.palpiteH} × ${b.palpiteA}</div>
+          <div class="bet-result">${resultStr}</div>
+        </div>
+        <div class="bet-pts">
+          <span class="reason-chip ${r.cls}">${r.label}</span>
+        </div>
+      </div>`;
+  });
+
+  document.getElementById('sheet-body').innerHTML = rows.join('');
 }
 
 // ---- ADMIN ----

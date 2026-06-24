@@ -27,6 +27,18 @@ function calcPoints(p, game) {
   return 0;
 }
 
+function calcReason(p, game) {
+  if (game.status === 'scheduled') return 'aguardando';
+  if (game.homeScore === null || game.awayScore === null) return 'aguardando';
+  const ph = p.h, pa = p.a, gh = game.homeScore, ga = game.awayScore;
+  if (ph === gh && pa === ga) return 'exato';
+  const pResult = ph > pa ? 'H' : ph < pa ? 'A' : 'D';
+  const gResult = gh > ga ? 'H' : gh < ga ? 'A' : 'D';
+  if (pResult === gResult) return 'resultado';
+  if (ph === gh || pa === ga) return 'gol';
+  return 'errou';
+}
+
 async function verifyUser(nick, pass) {
   const sql = neon(process.env.DATABASE_URL);
   const encoded = Buffer.from(pass).toString('base64');
@@ -109,6 +121,47 @@ module.exports = async function handler(req, res) {
       }).sort((a, b) => b.pts - a.pts || b.count - a.count);
 
       return res.status(200).json({ ranking });
+    }
+
+    if (req.method === 'GET' && action === 'profile') {
+      const { nick: targetNick } = req.query;
+      if (!targetNick) return res.status(400).json({ error: 'nick obrigatório' });
+
+      const gamesRes = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/games`);
+      const { games } = await gamesRes.json();
+      const gameMap = {};
+      for (const g of games) gameMap[g.id] = g;
+
+      const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${targetNick} ORDER BY created_at`;
+
+      const bets = [];
+      let totalPts = 0;
+      for (const r of rows) {
+        const game = gameMap[r.game_id];
+        if (!game) continue;
+        const p = { h: r.home_score, a: r.away_score };
+        const pts = calcPoints(p, game);
+        const reason = calcReason(p, game);
+        if (game.status !== 'scheduled') totalPts += pts;
+        bets.push({
+          gameId: r.game_id,
+          home: game.home,
+          away: game.away,
+          homeScore: game.homeScore,
+          awayScore: game.awayScore,
+          status: game.status,
+          datetime: game.datetime,
+          group: game.group,
+          palpiteH: r.home_score,
+          palpiteA: r.away_score,
+          pts,
+          reason,
+        });
+      }
+
+      bets.sort((a, b) => new Date(b.datetime) - new Date(a.datetime));
+
+      return res.status(200).json({ nick: targetNick, totalPts, bets });
     }
 
     return res.status(400).json({ error: 'Ação inválida' });
