@@ -715,7 +715,7 @@
 
 <script>
 // ---- STATE ----
-let session = null;
+let session = JSON.parse(sessionStorage.getItem('session') || 'null');
 let gamesCache = null;
 let myPalpitesCache = {};
 let liveInterval = null;
@@ -796,6 +796,7 @@ async function doRegister() {
 
 function afterAuth(data, pass) {
   session = { nick: data.nick, pass, status: data.status, role: data.role };
+  sessionStorage.setItem('session', JSON.stringify(session));
   if (data.status === 'pending') {
     showScreen('pending');
   } else if (data.status === 'approved') {
@@ -808,6 +809,7 @@ function afterAuth(data, pass) {
 
 function doLogout() {
   session = null;
+  sessionStorage.removeItem('session');
   gamesCache = null;
   myPalpitesCache = {};
   stopLiveInterval();
@@ -1215,7 +1217,13 @@ async function adminDeleteUser(targetNick) {
 }
 
 // ---- INIT ----
-showScreen('auth');
+if (session) {
+  if (session.status === 'approved') enterMain();
+  else if (session.status === 'pending') showScreen('pending');
+  else showScreen('auth');
+} else {
+  showScreen('auth');
+}
 
 // Fix: tab panels hidden by default except games
 document.querySelectorAll('.tab-panel').forEach(p => {
