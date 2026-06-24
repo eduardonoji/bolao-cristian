@@ -689,14 +689,20 @@ function switchTab(name, btn) {
   if (name === 'admin') loadAdminPending();
 }
 
-// ---- WINDOW BOUNDS ----
+// ---- WINDOW BOUNDS (Manaus = UTC-4, sem DST) ----
 function getWindowBounds() {
   const now = new Date();
+  // Hora atual em Manaus (UTC-4)
+  const manausNow = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  const h = manausNow.getUTCHours();
+
+  // 06:00 Manaus = 10:00 UTC
   const start = new Date(now);
-  start.setHours(6, 0, 0, 0);
-  if (now.getHours() < 6) start.setDate(start.getDate() - 1);
+  start.setUTCHours(10, 0, 0, 0);
+  if (h < 6) start.setUTCDate(start.getUTCDate() - 1);
+
   const end = new Date(start);
-  end.setDate(end.getDate() + 1);
+  end.setUTCDate(end.getUTCDate() + 1);
   return { start, end };
 }
 
@@ -745,12 +751,13 @@ function renderGames() {
     return;
   }
 
+  todayGames.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
   list.innerHTML = todayGames.map(g => renderGameCard(g)).join('');
 }
 
 function renderGameCard(g) {
   const d = new Date(g.datetime);
-  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const time = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus', hour: '2-digit', minute: '2-digit' });
   const p = myPalpitesCache[g.id];
 
   let badgeHtml;

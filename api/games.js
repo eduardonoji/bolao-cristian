@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
         const datePart = parts[0];
         const timePart = parts[1] || '00:00';
         const [month, day, year] = datePart.split('/');
-        datetime = `${year}-${month}-${day}T${timePart}:00`;
+        datetime = `${year}-${month}-${day}T${timePart}:00Z`;
       }
 
       const finished = g.finished === 'TRUE' || g.finished === true;
