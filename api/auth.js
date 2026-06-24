@@ -1,8 +1,8 @@
-import { kv } from "@vercel/kv";
+const { kv } = require("@vercel/kv");
 
 const ADMIN_NICK = "eduardo";
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -10,7 +10,6 @@ export default async function handler(req, res) {
 
   const { action } = req.query;
 
-  // ── REGISTER ──────────────────────────────────────────────
   if (action === "register" && req.method === "POST") {
     const { nick, pass } = req.body;
     if (!nick || !pass) return res.status(400).json({ error: "Dados inválidos." });
@@ -32,7 +31,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, status, role });
   }
 
-  // ── LOGIN ─────────────────────────────────────────────────
   if (action === "login" && req.method === "POST") {
     const { nick, pass } = req.body;
     const slug = (nick || "").trim().toLowerCase();
@@ -46,7 +44,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: true, nick: user.nick, status: user.status, role: user.role });
   }
 
-  // ── LIST PENDING (admin) ───────────────────────────────────
   if (action === "pending" && req.method === "GET") {
     const { adminNick, adminPass } = req.query;
     const ok = await checkAdmin(adminNick, adminPass);
@@ -61,7 +58,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ pending });
   }
 
-  // ── APPROVE / REJECT (admin) ───────────────────────────────
   if (action === "approve" && req.method === "POST") {
     const { adminNick, adminPass, targetNick, decision } = req.body;
     const ok = await checkAdmin(adminNick, adminPass);
@@ -78,7 +74,7 @@ export default async function handler(req, res) {
   }
 
   return res.status(404).json({ error: "Ação não encontrada." });
-}
+};
 
 async function checkAdmin(nick, pass) {
   const slug = (nick || "").trim().toLowerCase();

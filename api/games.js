@@ -1,6 +1,6 @@
-import { kv } from "@vercel/kv";
+const { kv } = require("@vercel/kv");
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   if (req.method === "OPTIONS") return res.status(200).end();
 
@@ -8,11 +8,11 @@ export default async function handler(req, res) {
     const cached = await kv.get("games_cache");
     if (cached) {
       const obj = typeof cached === "string" ? JSON.parse(cached) : cached;
-      if (Date.now() - obj.ts < 60_000)
+      if (Date.now() - obj.ts < 60000)
         return res.status(200).json({ games: obj.data, cached: true });
     }
 
-    const r    = await fetch("https://worldcup26.ir/get/games");
+    const r = await fetch("https://worldcup26.ir/get/games");
     const json = await r.json();
     const games = (json.games || json || []).map(g => ({
       id: g.id || `${g.home}_${g.away}`,
@@ -29,4 +29,4 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: "Erro ao buscar jogos.", detail: e.message });
   }
-}
+};

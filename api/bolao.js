@@ -1,6 +1,6 @@
-import { kv } from "@vercel/kv";
+const { kv } = require("@vercel/kv");
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -8,20 +8,16 @@ export default async function handler(req, res) {
 
   const { action } = req.query;
 
-  // ── SALVAR PALPITE ─────────────────────────────────────────
   if (action === "save" && req.method === "POST") {
     const { nick, pass, gameId, home, away } = req.body;
     const user = await authUser(nick, pass);
     if (!user) return res.status(401).json({ error: "Não autorizado." });
     if (user.status !== "approved") return res.status(403).json({ error: "Conta aguardando aprovação." });
 
-    const key = `palpite:${user.nick}:${gameId}`;
-    await kv.set(key, JSON.stringify({ h: parseInt(home), a: parseInt(away), ts: Date.now() }));
-
+    await kv.set(`palpite:${user.nick}:${gameId}`, JSON.stringify({ h: parseInt(home), a: parseInt(away), ts: Date.now() }));
     return res.status(200).json({ ok: true });
   }
 
-  // ── BUSCAR PALPITES DO USUÁRIO ─────────────────────────────
   if (action === "my" && req.method === "GET") {
     const { nick, pass } = req.query;
     const user = await authUser(nick, pass);
@@ -31,16 +27,14 @@ export default async function handler(req, res) {
     const palpites = {};
     for (const k of keys) {
       const gameId = k.split(":").slice(2).join(":");
-      const val    = await kv.get(k);
+      const val = await kv.get(k);
       palpites[gameId] = typeof val === "string" ? JSON.parse(val) : val;
     }
     return res.status(200).json({ palpites });
   }
 
-  // ── RANKING GERAL ──────────────────────────────────────────
   if (action === "ranking" && req.method === "GET") {
     const games = await fetchGames();
-
     const allUsers = await kv.hgetall("users");
     const approved = Object.values(allUsers || {})
       .map(v => (typeof v === "string" ? JSON.parse(v) : v))
@@ -52,10 +46,10 @@ export default async function handler(req, res) {
       let pts = 0, count = 0;
       for (const k of keys) {
         const gameId = k.split(":").slice(2).join(":");
-        const game   = games.find(g => g.id === gameId);
+        const game = games.find(g => g.id === gameId);
         if (!game || game.home_score === null || game.away_score === null) continue;
         const val = await kv.get(k);
-        const p   = typeof val === "string" ? JSON.parse(val) : val;
+        const p = typeof val === "string" ? JSON.parse(val) : val;
         pts += calcPoints(p, game);
         count++;
       }
@@ -67,7 +61,7 @@ export default async function handler(req, res) {
   }
 
   return res.status(404).json({ error: "Ação não encontrada." });
-}
+};
 
 function calcPoints(p, game) {
   const { home_score: hs, away_score: as_ } = game;
@@ -82,7 +76,7 @@ function calcPoints(p, game) {
 
 async function authUser(nick, pass) {
   const slug = (nick || "").trim().toLowerCase();
-  const raw  = await kv.hget("users", slug);
+  const raw = await kv.hget("users", slug);
   if (!raw) return null;
   const user = typeof raw === "string" ? JSON.parse(raw) : raw;
   if (user.pass !== Buffer.from(pass || "").toString("base64")) return null;
@@ -93,10 +87,10 @@ async function fetchGames() {
   try {
     const cached = await kv.get("games_cache");
     if (cached) {
-      const { data, ts } = typeof cached === "string" ? JSON.parse(cached) : cached;
-      if (Date.now() - ts < 60_000) return data;
+      const obj = typeof cached === "string" ? JSON.parse(cached) : cached;
+      if (Date.now() - obj.ts < 60000) return obj.data;
     }
-    const r    = await fetch("https://worldcup26.ir/get/games");
+    const r = await fetch("https://worldcup26.ir/get/games");
     const json = await r.json();
     const games = (json.games || json || []).map(g => ({
       id: g.id || `${g.home}_${g.away}`,
