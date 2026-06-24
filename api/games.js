@@ -8,24 +8,37 @@ module.exports = async function handler(req, res) {
     const raw = json.games || json || [];
 
     const games = raw.map(g => {
-      const homeScore = g.home_score !== undefined ? g.home_score
-        : g.score?.home_team !== undefined ? g.score.home_team : null;
-      const awayScore = g.away_score !== undefined ? g.away_score
-        : g.score?.away_team !== undefined ? g.score.away_team : null;
+      // local_date vem como "06/13/2026 21:00" → converter para ISO
+      let datetime = null;
+      if (g.local_date) {
+        const [datePart, timePart] = g.local_date.split(" ");
+        const [month, day, year] = datePart.split("/");
+        datetime = `${year}-${month}-${day}T${timePart}:00`;
+      }
+
+      const finished = g.finished === "TRUE" || g.time_elapsed === "finished";
+      const status = finished ? "completed"
+        : g.time_elapsed && g.time_elapsed !== "finished" && g.time_elapsed !== "" ? "in_progress"
+        : "scheduled";
 
       return {
-        id:         g.id || `${g.home}_${g.away}`,
-        home:       g.home_team || g.home || "",
-        away:       g.away_team || g.away || "",
-        home_score: homeScore,
-        away_score: awayScore,
-        status:     g.status || "scheduled",
-        datetime:   g.start_time || g.datetime || g.date || g.time || null,
+        id:         g.id || g._id,
+        home:       g.home_team_name_en || "",
+        away:       g.away_team_name_en || "",
+        home_score: finished ? parseInt(g.home_score) : null,
+        away_score: finished ? parseInt(g.away_score) : null,
+        status,
+        datetime,
+        group:      g.group || "",
+        matchday:   g.matchday || "",
       };
     });
 
+    // ordenar por data
+    games.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
     return res.status(200).json({ games });
   } catch (e) {
-    return res.status(500).json({ error: "Erro ao buscar jogos.", detail: e.message });
+    return res.status(500).json({ error: e.message });
   }
 };
