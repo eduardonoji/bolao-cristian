@@ -67,6 +67,11 @@ module.exports = async function handler(req, res) {
       if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
       if (user.status !== 'approved') return res.status(403).json({ error: 'Usuário não aprovado' });
 
+      const games = await fetchGames();
+      const game = games.find(g => g.id === gameId);
+      if (!game) return res.status(404).json({ error: 'Jogo não encontrado' });
+      if (game.status !== 'scheduled') return res.status(403).json({ error: 'Jogo já iniciado — palpite bloqueado' });
+
       await sql`
         INSERT INTO palpites (nick, game_id, home_score, away_score)
         VALUES (${nick}, ${gameId}, ${parseInt(home)}, ${parseInt(away)})
