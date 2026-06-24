@@ -402,31 +402,49 @@ function renderGames(){
   const el = document.getElementById("games-list");
   if(!games.length){ el.innerHTML='<div class="empty">Nenhum jogo encontrado.</div>'; return; }
 
-  const today = new Date().toDateString();
-  const groups = {};
+  const todayStr = new Date().toDateString();
+
+  // Separa: hoje (encerrados + futuros) e próximos dias
+  const hoje = [];
+  const proximos = {};
+
   games.forEach(g => {
     const d = g.datetime ? new Date(g.datetime) : null;
-    const key = d ? (d.toDateString()===today ? "Hoje" : d.toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"short"})) : "Outros";
-    (groups[key] = groups[key]||[]).push(g);
+    if(!d) return;
+    if(d.toDateString() === todayStr) {
+      hoje.push(g);
+    } else if(d > new Date()) {
+      const key = d.toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
+      (proximos[key] = proximos[key]||[]).push(g);
+    }
+    // jogos de dias anteriores são ignorados — já ficam no histórico de palpites
   });
 
   let html = "";
-  Object.entries(groups).forEach(([label, list]) => {
+
+  if(hoje.length){
+    html += `<div class="divider-label">Hoje</div>`;
+    hoje.forEach(g => { html += gameCard(g, true); });
+  }
+
+  Object.entries(proximos).forEach(([label, list]) => {
     html += `<div class="divider-label">${label}</div>`;
-    list.forEach(g => { html += gameCard(g); });
+    list.forEach(g => { html += gameCard(g, false); });
   });
+
+  if(!html) html = '<div class="empty">Nenhum jogo disponível.</div>';
   el.innerHTML = html;
 }
 
-function gameCard(g){
+function gameCard(g, isToday){
   const locked = isLocked(g);
   const p = myPalpites[g.id];
   const hasResult = g.home_score!==null && g.away_score!==null;
 
   let statusBadge = "";
-  if(g.status==="in_progress") statusBadge='<span class="badge badge-red"><i class="ti ti-circle-filled" style="font-size:9px"></i> Ao vivo</span>';
-  else if(locked)               statusBadge='<span class="badge badge-gray">Encerrado</span>';
-  else                          statusBadge='<span class="badge badge-amber">Em breve</span>';
+  if(locked)        statusBadge='<span class="badge badge-gray">Encerrado</span>';
+  else if(isToday)  statusBadge='<span class="badge badge-green">Hoje</span>';
+  else              statusBadge='';
 
   const time = g.datetime
     ? new Date(g.datetime).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})
