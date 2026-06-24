@@ -1,44 +1,52 @@
 module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    const r = await fetch("https://worldcup26.ir/get/games");
-    const json = await r.json();
-    const raw = json.games || json || [];
+    const response = await fetch('https://worldcup26.ir/get/games');
+    if (!response.ok) throw new Error('Falha ao buscar jogos');
+    const data = await response.json();
+    const raw = Array.isArray(data) ? data : (data.games || data.data || []);
 
     const games = raw.map(g => {
-      // local_date vem como "06/13/2026 21:00" → converter para ISO
       let datetime = null;
       if (g.local_date) {
-        const [datePart, timePart] = g.local_date.split(" ");
-        const [month, day, year] = datePart.split("/");
+        const parts = g.local_date.split(' ');
+        const datePart = parts[0];
+        const timePart = parts[1] || '00:00';
+        const [month, day, year] = datePart.split('/');
         datetime = `${year}-${month}-${day}T${timePart}:00`;
       }
 
-      const finished = g.finished === "TRUE" || g.time_elapsed === "finished";
-      const status = finished ? "completed"
-        : g.time_elapsed && g.time_elapsed !== "finished" && g.time_elapsed !== "" ? "in_progress"
-        : "scheduled";
+      const finished = g.finished === 'TRUE' || g.finished === true;
+      const timeElapsed = g.time_elapsed || '';
+      const isLive = !finished && /\d/.test(timeElapsed);
+
+      let status = 'scheduled';
+      if (finished) status = 'completed';
+      else if (isLive) status = 'in_progress';
+
+      const hasScore = status === 'in_progress' || status === 'completed';
 
       return {
-        id:         g.id || g._id,
-        home:       g.home_team_name_en || "",
-        away:       g.away_team_name_en || "",
-        home_score: finished ? parseInt(g.home_score) : null,
-        away_score: finished ? parseInt(g.away_score) : null,
+        id: String(g.id),
+        home: g.home_team_name_en || '',
+        away: g.away_team_name_en || '',
+        homeScore: hasScore ? parseInt(g.home_score, 10) : null,
+        awayScore: hasScore ? parseInt(g.away_score, 10) : null,
         status,
+        timeElapsed: timeElapsed,
         datetime,
-        group:      g.group || "",
-        matchday:   g.matchday || "",
+        group: g.group || '',
+        matchday: g.matchday || ''
       };
     });
 
-    // ordenar por data
-    games.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
-
     return res.status(200).json({ games });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    console.error(e);
+    return res.status(500).json({ error: 'Erro ao buscar jogos' });
   }
 };

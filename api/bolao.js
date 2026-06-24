@@ -1,4 +1,4 @@
-const { neon } = require("@neondatabase/serverless");
+const { neon } = require('@neondatabase/serverless');
 
 async function getDb() {
   const sql = neon(process.env.DATABASE_URL);
@@ -16,98 +16,104 @@ async function getDb() {
   return sql;
 }
 
+function calcPoints(p, game) {
+  if (game.homeScore === null || game.awayScore === null) return 0;
+  const ph = p.h, pa = p.a, gh = game.homeScore, ga = game.awayScore;
+  if (ph === gh && pa === ga) return 10;
+  const pResult = ph > pa ? 'H' : ph < pa ? 'A' : 'D';
+  const gResult = gh > ga ? 'H' : gh < ga ? 'A' : 'D';
+  if (pResult === gResult) return 5;
+  if (ph === gh || pa === ga) return 2;
+  return 0;
+}
+
+async function verifyUser(nick, pass) {
+  const sql = neon(process.env.DATABASE_URL);
+  const encoded = Buffer.from(pass).toString('base64');
+  const rows = await sql`SELECT nick, status, role FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
+  return rows.length ? rows[0] : null;
+}
+
 module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action } = req.query;
-  const sql = await getDb();
+  const action = req.query.action;
 
-  if (action === "save" && req.method === "POST") {
-    const { nick, pass, gameId, home, away } = req.body;
-    const user = await authUser(sql, nick, pass);
-    if (!user) return res.status(401).json({ error: "Não autorizado." });
-    if (user.status !== "approved") return res.status(403).json({ error: "Conta aguardando aprovação." });
+  try {
+    const sql = await getDb();
 
-    await sql`
-      INSERT INTO palpites (nick, game_id, home_score, away_score)
-      VALUES (${user.nick}, ${gameId}, ${parseInt(home)}, ${parseInt(away)})
-      ON CONFLICT (nick, game_id) DO UPDATE SET home_score = ${parseInt(home)}, away_score = ${parseInt(away)}
-    `;
-    return res.status(200).json({ ok: true });
-  }
-
-  if (action === "my" && req.method === "GET") {
-    const { nick, pass } = req.query;
-    const user = await authUser(sql, nick, pass);
-    if (!user) return res.status(401).json({ error: "Não autorizado." });
-
-    const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${user.nick}`;
-    const palpites = {};
-    rows.forEach(r => { palpites[r.game_id] = { h: r.home_score, a: r.away_score }; });
-    return res.status(200).json({ palpites });
-  }
-
-  if (action === "ranking" && req.method === "GET") {
-    const games = await fetchGames();
-    const allUsers = await sql`SELECT nick FROM users WHERE status = 'approved'`;
-    const ranking = [];
-
-    for (const u of allUsers) {
-      const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${u.nick}`;
-      let pts = 0, count = 0;
-      for (const r of rows) {
-        const game = games.find(g => g.id === r.game_id);
-        if (!game || game.home_score === null || game.away_score === null) continue;
-        pts += calcPoints({ h: r.home_score, a: r.away_score }, game);
-        count++;
+    if (req.method === 'POST' && action === 'save') {
+      const { nick, pass, gameId, home, away } = req.body;
+      if (!nick || !pass || !gameId || home === undefined || away === undefined) {
+        return res.status(400).json({ error: 'Dados incompletos' });
       }
-      ranking.push({ nick: u.nick, pts, count });
+      const user = await verifyUser(nick, pass);
+      if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
+      if (user.status !== 'approved') return res.status(403).json({ error: 'Usuário não aprovado' });
+
+      await sql`
+        INSERT INTO palpites (nick, game_id, home_score, away_score)
+        VALUES (${nick}, ${gameId}, ${parseInt(home)}, ${parseInt(away)})
+        ON CONFLICT (nick, game_id) DO UPDATE
+          SET home_score = EXCLUDED.home_score,
+              away_score = EXCLUDED.away_score,
+              created_at = NOW()
+      `;
+      return res.status(200).json({ ok: true });
     }
 
-    ranking.sort((a, b) => b.pts - a.pts);
-    return res.status(200).json({ ranking });
-  }
+    if (req.method === 'GET' && action === 'my') {
+      const { nick, pass } = req.query;
+      const user = await verifyUser(nick, pass);
+      if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
+      if (user.status !== 'approved') return res.status(403).json({ error: 'Usuário não aprovado' });
 
-  return res.status(404).json({ error: "Ação não encontrada." });
+      const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${nick}`;
+      const palpites = {};
+      for (const r of rows) {
+        palpites[r.game_id] = { h: r.home_score, a: r.away_score };
+      }
+      return res.status(200).json({ palpites });
+    }
+
+    if (req.method === 'GET' && action === 'ranking') {
+      const gamesRes = await fetch(`${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3000'}/api/games`);
+      const { games } = await gamesRes.json();
+
+      const finishedOrLive = games.filter(g => g.status === 'completed' || g.status === 'in_progress');
+
+      const users = await sql`SELECT nick FROM users WHERE status = 'approved'`;
+      const allPalpites = await sql`SELECT nick, game_id, home_score, away_score FROM palpites`;
+
+      const byNick = {};
+      for (const p of allPalpites) {
+        if (!byNick[p.nick]) byNick[p.nick] = {};
+        byNick[p.nick][p.game_id] = { h: p.home_score, a: p.away_score };
+      }
+
+      const ranking = users.map(u => {
+        const mine = byNick[u.nick] || {};
+        let pts = 0, count = 0;
+        for (const g of finishedOrLive) {
+          const p = mine[g.id];
+          if (p) {
+            const earned = calcPoints(p, g);
+            pts += earned;
+            if (earned > 0) count++;
+          }
+        }
+        return { nick: u.nick, pts, count };
+      }).sort((a, b) => b.pts - a.pts || b.count - a.count);
+
+      return res.status(200).json({ ranking });
+    }
+
+    return res.status(400).json({ error: 'Ação inválida' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Erro interno' });
+  }
 };
-
-function calcPoints(p, game) {
-  const { home_score: hs, away_score: as_ } = game;
-  if (p.h === hs && p.a === as_) return 10;
-  let pts = 0;
-  const rg = hs > as_ ? "H" : hs < as_ ? "A" : "D";
-  const rp = p.h > p.a ? "H" : p.h < p.a ? "A" : "D";
-  if (rg === rp) pts += 5;
-  if (p.h === hs || p.a === as_) pts += 2;
-  return pts;
-}
-
-async function authUser(sql, nick, pass) {
-  const slug = (nick || "").trim().toLowerCase();
-  const rows = await sql`SELECT * FROM users WHERE nick = ${slug}`;
-  if (rows.length === 0) return null;
-  const user = rows[0];
-  if (user.pass !== Buffer.from(pass || "").toString("base64")) return null;
-  return user;
-}
-
-async function fetchGames() {
-  try {
-    const r = await fetch("https://worldcup26.ir/get/games");
-    const json = await r.json();
-    return (json.games || json || []).map(g => ({
-      id: g.id || `${g.home}_${g.away}`,
-      home: g.home_team || g.home || "",
-      away: g.away_team || g.away || "",
-      home_score: g.home_score !== undefined ? g.home_score : (g.score?.home_team ?? null),
-      away_score: g.away_score !== undefined ? g.away_score : (g.score?.away_team ?? null),
-      status: g.status || "scheduled",
-      datetime: g.datetime || g.date || "",
-    }));
-  } catch {
-    return [];
-  }
-}

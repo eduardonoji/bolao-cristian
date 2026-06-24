@@ -1,6 +1,6 @@
-const { neon } = require("@neondatabase/serverless");
+const { neon } = require('@neondatabase/serverless');
 
-const ADMIN_NICK = "eduardo";
+const ADMIN_NICK = 'eduardo';
 
 async function getDb() {
   const sql = neon(process.env.DATABASE_URL);
@@ -17,72 +17,69 @@ async function getDb() {
 }
 
 module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action } = req.query;
-  const sql = await getDb();
+  const action = req.query.action;
 
-  if (action === "register" && req.method === "POST") {
-    const { nick, pass } = req.body;
-    if (!nick || !pass) return res.status(400).json({ error: "Dados inválidos." });
+  try {
+    const sql = await getDb();
 
-    const slug = nick.trim().toLowerCase();
-    if (!/^[a-z0-9_]{2,20}$/.test(slug))
-      return res.status(400).json({ error: "Apelido inválido (2–20 chars, letras/números/_)." });
+    if (req.method === 'POST' && action === 'register') {
+      const { nick, pass } = req.body;
+      if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
+      const encoded = Buffer.from(pass).toString('base64');
+      const isAdmin = nick === ADMIN_NICK;
+      const status = isAdmin ? 'approved' : 'pending';
+      const role = isAdmin ? 'admin' : 'user';
+      try {
+        await sql`INSERT INTO users (nick, pass, status, role) VALUES (${nick}, ${encoded}, ${status}, ${role})`;
+      } catch (e) {
+        if (e.message && e.message.includes('duplicate')) {
+          return res.status(409).json({ error: 'Nick já em uso' });
+        }
+        throw e;
+      }
+      return res.status(200).json({ nick, status, role });
+    }
 
-    const existing = await sql`SELECT nick FROM users WHERE nick = ${slug}`;
-    if (existing.length > 0) return res.status(409).json({ error: "Apelido já em uso." });
+    if (req.method === 'POST' && action === 'login') {
+      const { nick, pass } = req.body;
+      if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
+      const encoded = Buffer.from(pass).toString('base64');
+      const rows = await sql`SELECT nick, status, role FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
+      if (!rows.length) return res.status(401).json({ error: 'Nick ou senha incorretos' });
+      return res.status(200).json(rows[0]);
+    }
 
-    const status = slug === ADMIN_NICK ? "approved" : "pending";
-    const role   = slug === ADMIN_NICK ? "admin"    : "user";
-    const passB64 = Buffer.from(pass).toString("base64");
+    if (req.method === 'GET' && action === 'pending') {
+      const { adminNick, adminPass } = req.query;
+      const encoded = Buffer.from(adminPass || '').toString('base64');
+      const adminRows = await sql`SELECT role FROM users WHERE nick = ${adminNick} AND pass = ${encoded}`;
+      if (!adminRows.length || adminRows[0].role !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado' });
+      }
+      const rows = await sql`SELECT nick, created_at FROM users WHERE status = 'pending' ORDER BY created_at`;
+      return res.status(200).json({ users: rows });
+    }
 
-    await sql`INSERT INTO users (nick, pass, status, role) VALUES (${slug}, ${passB64}, ${status}, ${role})`;
-    return res.status(200).json({ ok: true, status, role });
+    if (req.method === 'POST' && action === 'approve') {
+      const { adminNick, adminPass, targetNick, decision } = req.body;
+      const encoded = Buffer.from(adminPass || '').toString('base64');
+      const adminRows = await sql`SELECT role FROM users WHERE nick = ${adminNick} AND pass = ${encoded}`;
+      if (!adminRows.length || adminRows[0].role !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado' });
+      }
+      const newStatus = decision === 'approve' ? 'approved' : 'rejected';
+      await sql`UPDATE users SET status = ${newStatus} WHERE nick = ${targetNick}`;
+      return res.status(200).json({ ok: true });
+    }
+
+    return res.status(400).json({ error: 'Ação inválida' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Erro interno' });
   }
-
-  if (action === "login" && req.method === "POST") {
-    const { nick, pass } = req.body;
-    const slug = (nick || "").trim().toLowerCase();
-    const rows = await sql`SELECT * FROM users WHERE nick = ${slug}`;
-    if (rows.length === 0) return res.status(404).json({ error: "Apelido não encontrado." });
-
-    const user = rows[0];
-    if (user.pass !== Buffer.from(pass).toString("base64"))
-      return res.status(401).json({ error: "Senha incorreta." });
-
-    return res.status(200).json({ ok: true, nick: user.nick, status: user.status, role: user.role });
-  }
-
-  if (action === "pending" && req.method === "GET") {
-    const { adminNick, adminPass } = req.query;
-    const ok = await checkAdmin(sql, adminNick, adminPass);
-    if (!ok) return res.status(403).json({ error: "Não autorizado." });
-
-    const rows = await sql`SELECT nick, status FROM users WHERE status = 'pending'`;
-    return res.status(200).json({ pending: rows });
-  }
-
-  if (action === "approve" && req.method === "POST") {
-    const { adminNick, adminPass, targetNick, decision } = req.body;
-    const ok = await checkAdmin(sql, adminNick, adminPass);
-    if (!ok) return res.status(403).json({ error: "Não autorizado." });
-
-    const newStatus = decision === "approve" ? "approved" : "rejected";
-    await sql`UPDATE users SET status = ${newStatus} WHERE nick = ${targetNick}`;
-    return res.status(200).json({ ok: true, status: newStatus });
-  }
-
-  return res.status(404).json({ error: "Ação não encontrada." });
 };
-
-async function checkAdmin(sql, nick, pass) {
-  const slug = (nick || "").trim().toLowerCase();
-  const rows = await sql`SELECT * FROM users WHERE nick = ${slug}`;
-  if (rows.length === 0) return false;
-  const user = rows[0];
-  return user.role === "admin" && user.pass === Buffer.from(pass || "").toString("base64");
-}
