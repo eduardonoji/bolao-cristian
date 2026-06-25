@@ -1197,7 +1197,6 @@ async function betWithAI(gameId) {
     if (!hInput || !aInput) return;
     hInput.value = data.home;
     aInput.value = data.away;
-    await savePalpite(gameId);
   } catch (e) {
     alert('Erro de conexão com a IA.');
   } finally {
