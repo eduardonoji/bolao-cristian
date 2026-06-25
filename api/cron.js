@@ -75,6 +75,37 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
 }
 
 module.exports = async function handler(req, res) {
+  // Endpoint de teste temporário: ?action=test&nick=X&pass=X
+  if (req.method === 'GET' && req.query.action === 'test') {
+    const { nick, pass } = req.query;
+    if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
+    const sqlTest = neon(process.env.DATABASE_URL);
+    const encoded = Buffer.from(pass).toString('base64');
+    const userRows = await sqlTest`SELECT nick, email FROM users WHERE nick = ${nick} AND pass = ${encoded} AND status = 'approved'`;
+    if (!userRows.length) return res.status(401).json({ error: 'Credenciais inválidas' });
+    const user = userRows[0];
+    if (!user.email) return res.status(400).json({ error: 'Sem e-mail cadastrado' });
+
+    const games = await fetchGames();
+    const { start, end } = getWindowBoundsUTC();
+    const todayScheduled = games
+      .filter(g => g.datetime && g.status === 'scheduled' && new Date(g.datetime) >= start && new Date(g.datetime) < end)
+      .sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
+    if (!todayScheduled.length) return res.status(200).json({ ok: false, message: 'Nenhum jogo agendado hoje.' });
+
+    const gameIds = todayScheduled.map(g => g.id);
+    const palpites = await sqlTest`SELECT game_id FROM palpites WHERE nick = ${nick} AND game_id = ANY(${gameIds})`;
+    const betSet = new Set(palpites.map(p => p.game_id));
+    const missing = todayScheduled.filter(g => !betSet.has(g.id));
+
+    if (!missing.length) return res.status(200).json({ ok: false, message: 'Você já apostou em todos os jogos de hoje.' });
+
+    const { subject, html } = buildReminderEmail(user.nick, missing[0], missing.slice(1));
+    const ok = await sendEmail(user.email, subject, html);
+    return res.status(200).json({ ok, to: user.email, jogos: missing.length });
+  }
+
   const auth = req.headers.authorization;
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Não autorizado' });
