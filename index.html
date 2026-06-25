@@ -1259,7 +1259,7 @@ function renderGameCard(g) {
           <input id="a-${g.id}" class="score-input" type="number" min="0" max="30" placeholder="0" value="${p ? p.a : ''}">
         </div>
         <div class="bet-buttons">
-          <button class="btn btn-primary" onclick="savePalpite('${g.id}')">${p ? 'Atualizar' : 'Palpitar'}</button>
+          <button class="btn btn-primary" id="save-btn-${g.id}" onclick="savePalpite('${g.id}')">${p ? 'Atualizar' : 'Palpitar'}</button>
           <button class="btn btn-ai" id="ai-btn-${g.id}" onclick="betWithAI('${g.id}')"><i class="ti ti-sparkles"></i> IA</button>
         </div>
       </div>`;
@@ -1306,6 +1306,8 @@ async function savePalpite(gameId) {
     alert('Preencha os dois placares corretamente.');
     return;
   }
+  const btn = document.getElementById('save-btn-' + gameId);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Salvando...'; }
   try {
     const r = await fetch('/api/bolao?action=save', {
       method: 'POST',
@@ -1313,7 +1315,11 @@ async function savePalpite(gameId) {
       body: JSON.stringify({ nick: session.nick, pass: session.pass, gameId, home: h, away: a })
     });
     const data = await r.json();
-    if (!r.ok) { alert(data.error || 'Erro ao salvar.'); return; }
+    if (!r.ok) {
+      if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = 'Palpitar'; }
+      alert(data.error || 'Erro ao salvar.');
+      return;
+    }
     myPalpitesCache[gameId] = { h, a };
     renderGames();
   } catch (e) {
