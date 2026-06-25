@@ -332,18 +332,20 @@
       background: var(--bg-surface);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 24px;
+      padding: 20px 18px;
       width: 100%;
-      max-width: 360px;
+      max-width: 340px;
+      max-height: 88vh;
+      overflow-y: auto;
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
     }
     .thiagotron-modal .modal-avatar-wrap {
-      width: 110px;
-      height: 110px;
+      width: 130px;
+      height: 130px;
       border-radius: 50%;
       background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888, #833ab4, #5851db, #405de6);
       padding: 4px;
@@ -375,12 +377,23 @@
       margin: 0;
     }
     .thiagotron-modal p {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--text-secondary);
-      line-height: 1.6;
+      line-height: 1.55;
       margin: 0;
       text-align: left;
     }
+    .thiagotron-done {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--green-text);
+      font-size: 16px;
+      font-weight: 700;
+      padding: 6px 0;
+    }
+    .thiagotron-done.visible { display: flex; }
     .thiagotron-modal .modal-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .btn-thiagotron {
       background: linear-gradient(135deg, #7c3aed, #4f46e5);
@@ -852,6 +865,7 @@
         Ao clicar em <strong>Manda ver Thiagotron!</strong>, todos os jogos de hoje sem palpite serão apostados e salvos automaticamente.</p>
         <div class="thiagotron-disclaimer">⚠️ A plataforma não se responsabiliza pelos palpites gerados pelo Thiagotron.</div>
         <div class="thiagotron-progress" id="thiagotron-progress"></div>
+        <div class="thiagotron-done" id="thiagotron-done"><i class="ti ti-circle-check-filled"></i> Concluído!</div>
         <div class="modal-btns">
           <button class="btn btn-thiagotron" id="btn-manda-ver" onclick="thiagotronBetAll()">Manda ver Thiagotron!</button>
           <button class="btn btn-sm" style="background:var(--bg-input);color:var(--text-secondary);width:100%;padding:12px" onclick="closeThiagotronModal()">Fechar</button>
@@ -1310,7 +1324,9 @@ async function savePalpite(gameId) {
 function openThiagotronModal() {
   document.getElementById('thiagotron-overlay').classList.add('open');
   document.getElementById('thiagotron-progress').textContent = '';
+  document.getElementById('thiagotron-done').classList.remove('visible');
   const btn = document.getElementById('btn-manda-ver');
+  btn.style.display = '';
   btn.disabled = false;
   btn.textContent = 'Manda ver Thiagotron!';
 }
@@ -1358,8 +1374,9 @@ async function thiagotronBetAll() {
     }
   }
 
-  prog.textContent = `Pronto! ${openGames.length} palpite(s) registrado(s).`;
-  btn.textContent = 'Concluído!';
+  prog.textContent = '';
+  btn.style.display = 'none';
+  document.getElementById('thiagotron-done').classList.add('visible');
   renderGames();
 }
 
