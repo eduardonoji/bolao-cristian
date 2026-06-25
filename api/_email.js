@@ -20,7 +20,8 @@ async function sendEmail(to, subject, html) {
     return false;
   }
   try {
-    const from = `Bolão Snip <${process.env.ADMIN_EMAIL || 'me'}>`;
+    const fromName = `=?UTF-8?B?${Buffer.from('Bolão Snip').toString('base64')}?=`;
+    const from = `${fromName} <${process.env.ADMIN_EMAIL || 'me'}>`;
     const accessToken = await getGmailAccessToken();
     const raw = Buffer.from(
       `From: ${from}\r\n` +
