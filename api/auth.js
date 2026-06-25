@@ -60,7 +60,7 @@ module.exports = async function handler(req, res) {
         const adminEmail = adminRows[0]?.email || process.env.ADMIN_EMAIL;
         if (adminEmail) {
           const approveUrl = `${APP_URL}/api/auth?action=quick-approve&nick=${encodeURIComponent(nick)}&token=${encodeURIComponent(approvalToken)}`;
-          sendEmail(adminEmail, `🔔 Bolão Snip — Novo cadastro: ${nick}`, buildAdminNotifEmail(nick, emailVal, approveUrl)).catch(() => {});
+          await sendEmail(adminEmail, `🔔 Bolão Snip — Novo cadastro: ${nick}`, buildAdminNotifEmail(nick, emailVal, approveUrl));
         }
       }
 
@@ -128,7 +128,7 @@ module.exports = async function handler(req, res) {
       }
       await sql`UPDATE users SET status = 'approved', approval_token = NULL WHERE nick = ${nick}`;
       if (rows[0].email) {
-        sendEmail(rows[0].email, '✅ Bolão Snip — Você foi aprovado!', buildApprovedEmail(nick)).catch(() => {});
+        await sendEmail(rows[0].email, '✅ Bolão Snip — Você foi aprovado!', buildApprovedEmail(nick));
       }
       return res.status(200).send(htmlPage('🎉 Aprovado!', `${nick} foi aprovado e já pode participar do bolão.`));
     }
@@ -167,7 +167,7 @@ module.exports = async function handler(req, res) {
       if (decision === 'approve') {
         const userRows = await sql`SELECT email FROM users WHERE nick = ${targetNick}`;
         if (userRows[0]?.email) {
-          sendEmail(userRows[0].email, '✅ Bolão Snip — Você foi aprovado!', buildApprovedEmail(targetNick)).catch(() => {});
+          await sendEmail(userRows[0].email, '✅ Bolão Snip — Você foi aprovado!', buildApprovedEmail(targetNick));
         }
       }
       return res.status(200).json({ ok: true });
