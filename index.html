@@ -221,6 +221,15 @@
       justify-content: space-between;
       z-index: 10;
     }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center top;
+      flex-shrink: 0;
+    }
     .topbar-title { font-size: 16px; font-weight: 700; }
     .topbar-user { font-size: 13px; color: var(--text-secondary); }
 
@@ -688,8 +697,11 @@
 
   <div id="screen-main" class="screen">
     <div class="topbar">
-      <div class="topbar-title">Bolão Snip - 2026</div>
-      <button class="logout-btn" onclick="doLogout()">Sair <i class="ti ti-logout"></i></button>
+      <div class="topbar-left">
+        <img src="/avatar.png" class="topbar-avatar" alt="">
+        <div class="topbar-title">Bolão Snip - 2026</div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()"><i class="ti ti-door-exit"></i> Sair</button>
     </div>
 
     <!-- Games Tab -->
