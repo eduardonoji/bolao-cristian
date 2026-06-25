@@ -40,9 +40,10 @@ function calcReason(p, game) {
   return 'errou';
 }
 
-async function verifyUser(nick, token) {
+async function verifyUser(nick, pass) {
   const sql = neon(process.env.DATABASE_URL);
-  const rows = await sql`SELECT nick, status, role FROM users WHERE nick = ${nick} AND token = ${token}`;
+  const encoded = Buffer.from(pass).toString('base64');
+  const rows = await sql`SELECT nick, status, role FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
   return rows.length ? rows[0] : null;
 }
 
@@ -58,12 +59,12 @@ module.exports = async function handler(req, res) {
     const sql = await getDb();
 
     if (req.method === 'POST' && action === 'save') {
-      const { nick, token, gameId, home, away } = req.body;
-      if (!nick || !token || !gameId || home === undefined || away === undefined) {
+      const { nick, pass, gameId, home, away } = req.body;
+      if (!nick || !pass || !gameId || home === undefined || away === undefined) {
         return res.status(400).json({ error: 'Dados incompletos' });
       }
-      const user = await verifyUser(nick, token);
-      if (!user) return res.status(401).json({ error: 'Sessão inválida' });
+      const user = await verifyUser(nick, pass);
+      if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
       if (user.status !== 'approved') return res.status(403).json({ error: 'Usuário não aprovado' });
 
       const games = await fetchGames();
@@ -84,9 +85,9 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'GET' && action === 'my') {
-      const { nick, token } = req.query;
-      const user = await verifyUser(nick, token);
-      if (!user) return res.status(401).json({ error: 'Sessão inválida' });
+      const { nick, pass } = req.query;
+      const user = await verifyUser(nick, pass);
+      if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
       if (user.status !== 'approved') return res.status(403).json({ error: 'Usuário não aprovado' });
 
       const rows = await sql`SELECT game_id, home_score, away_score FROM palpites WHERE nick = ${nick}`;
