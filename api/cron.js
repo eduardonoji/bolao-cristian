@@ -107,18 +107,9 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, message: 'Nenhum jogo agendado hoje.' });
     }
 
-    // Jogos que começam em 50–80 min (janela de lembrete)
-    const now = Date.now();
-    const REMIND_MIN_MS = 50 * 60 * 1000;
-    const REMIND_MAX_MS = 80 * 60 * 1000;
-    const triggerGames = todayScheduled.filter(g => {
-      const ms = new Date(g.datetime).getTime() - now;
-      return ms >= REMIND_MIN_MS && ms < REMIND_MAX_MS;
-    });
-
-    if (!triggerGames.length) {
-      return res.status(200).json({ ok: true, message: 'Nenhum jogo na janela de lembrete agora.' });
-    }
+    // Primeiro jogo do dia como "trigger" do lembrete
+    todayScheduled.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    const triggerGame = todayScheduled[0];
 
     const users = await sql`SELECT nick, email FROM users WHERE status = 'approved' AND email IS NOT NULL AND email != '' AND email_reminders IS NOT FALSE`;
     if (!users.length) {
@@ -129,32 +120,31 @@ module.exports = async function handler(req, res) {
     const palpites = await sql`SELECT nick, game_id FROM palpites WHERE game_id = ANY(${allGameIds})`;
     const betSet = new Set(palpites.map(p => `${p.nick}:${p.game_id}`));
 
-    const triggerIds = triggerGames.map(g => g.id);
-    const sentReminders = await sql`SELECT nick, game_id FROM reminders WHERE game_id = ANY(${triggerIds})`;
-    const sentSet = new Set(sentReminders.map(r => `${r.nick}:${r.game_id}`));
+    // Usa o trigger game para rastrear se o lembrete diário já foi enviado
+    const sentReminders = await sql`SELECT nick FROM reminders WHERE game_id = ${triggerGame.id}`;
+    const sentSet = new Set(sentReminders.map(r => r.nick));
 
     let sent = 0;
     for (const user of users) {
-      for (const triggerGame of triggerGames) {
-        const key = `${user.nick}:${triggerGame.id}`;
-        // Já apostou neste jogo ou já recebeu lembrete para ele — pula
-        if (betSet.has(key) || sentSet.has(key)) continue;
+      // Já recebeu lembrete hoje
+      if (sentSet.has(user.nick)) continue;
 
-        // Outros jogos de hoje sem palpite (excluindo o trigger)
-        const otherMissing = todayScheduled.filter(g =>
-          g.id !== triggerGame.id && !betSet.has(`${user.nick}:${g.id}`)
-        );
+      // Jogos sem palpite
+      const missing = todayScheduled.filter(g => !betSet.has(`${user.nick}:${g.id}`));
+      if (!missing.length) continue;
 
-        const { subject, html } = buildReminderEmail(user.nick, triggerGame, otherMissing);
-        const ok = await sendEmail(user.email, subject, html);
-        if (ok) {
-          await sql`INSERT INTO reminders (nick, game_id) VALUES (${user.nick}, ${triggerGame.id}) ON CONFLICT DO NOTHING`;
-          sent++;
-        }
+      const firstMissing = missing[0];
+      const otherMissing = missing.slice(1);
+
+      const { subject, html } = buildReminderEmail(user.nick, firstMissing, otherMissing);
+      const ok = await sendEmail(user.email, subject, html);
+      if (ok) {
+        await sql`INSERT INTO reminders (nick, game_id) VALUES (${user.nick}, ${triggerGame.id}) ON CONFLICT DO NOTHING`;
+        sent++;
       }
     }
 
-    return res.status(200).json({ ok: true, sent, users: users.length, triggerGames: triggerGames.length });
+    return res.status(200).json({ ok: true, sent, users: users.length });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Erro no cron' });
