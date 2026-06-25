@@ -76,16 +76,6 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
 }
 
 module.exports = async function handler(req, res) {
-  // Endpoint temporário: GET /api/cron?action=clear-reminders&nick=X&pass=X
-  if (req.method === 'GET' && req.query.action === 'clear-reminders') {
-    const { nick, pass } = req.query;
-    const sql = neon(process.env.DATABASE_URL);
-    const encoded = Buffer.from(pass || '').toString('base64');
-    const rows = await sql`SELECT role FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
-    if (!rows.length || rows[0].role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
-    await sql`DELETE FROM reminders`;
-    return res.status(200).json({ ok: true, message: 'Tabela reminders limpa.' });
-  }
 
 
   try {
