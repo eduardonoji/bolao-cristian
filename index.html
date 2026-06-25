@@ -294,19 +294,24 @@
       margin-top: 4px;
     }
     .games-header .section-title { margin: 0; }
+    .thiagotron-avatar-wrap {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888, #833ab4, #5851db, #405de6);
+      padding: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .thiagotron-avatar-wrap:hover { transform: scale(1.1); }
     .thiagotron-avatar {
-      width: 44px;
-      height: 44px;
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid #7c3aed;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      box-shadow: 0 0 0 0 rgba(124,58,237,0);
-    }
-    .thiagotron-avatar:hover {
-      transform: scale(1.08);
-      box-shadow: 0 0 12px rgba(124,58,237,0.6);
+      border: 2px solid var(--bg-primary);
+      display: block;
     }
 
     .thiagotron-overlay {
@@ -336,13 +341,32 @@
       align-items: center;
       gap: 16px;
     }
-    .thiagotron-modal img {
+    .thiagotron-modal .modal-avatar-wrap {
       width: 110px;
       height: 110px;
       border-radius: 50%;
+      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888, #833ab4, #5851db, #405de6);
+      padding: 4px;
+      flex-shrink: 0;
+    }
+    .thiagotron-modal .modal-avatar-wrap img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
       object-fit: cover;
-      border: 3px solid #7c3aed;
-      box-shadow: 0 0 20px rgba(124,58,237,0.4);
+      border: 3px solid var(--bg-surface);
+      display: block;
+    }
+    .thiagotron-disclaimer {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      text-align: center;
+      line-height: 1.5;
+      width: 100%;
     }
     .thiagotron-modal h3 {
       font-size: 18px;
@@ -808,7 +832,9 @@
     <div id="tab-games" class="tab-panel active">
       <div class="games-header">
         <div class="section-title" id="games-section-title">Jogos de Hoje</div>
-        <img src="/thiagotron.png" class="thiagotron-avatar" alt="Thiagotron" onclick="openThiagotronModal()">
+        <div class="thiagotron-avatar-wrap" onclick="openThiagotronModal()">
+          <img src="/thiagotron.png" class="thiagotron-avatar" alt="Thiagotron">
+        </div>
       </div>
       <div id="games-list"><div class="spinner">Carregando jogos...</div></div>
     </div>
@@ -816,11 +842,15 @@
     <!-- Modal Thiagotron -->
     <div class="thiagotron-overlay" id="thiagotron-overlay" onclick="if(event.target===this)closeThiagotronModal()">
       <div class="thiagotron-modal">
-        <img src="/thiagotron.png" alt="Thiagotron">
+        <div class="modal-avatar-wrap">
+          <img src="/thiagotron.png" alt="Thiagotron">
+        </div>
         <h3>Thiagotron</h3>
         <p>Enquanto a maioria aposta na sorte, eu aposto em dados.<br><br>
         Analiso centenas de informações em segundos para encontrar as melhores oportunidades do dia. Com uma taxa histórica de acerto de 80%, posso gerar suas sugestões de apostas com apenas um clique.<br><br>
-        Mas lembre-se: mesmo a melhor inteligência artificial não pode prever o futuro. Aposte com responsabilidade e utilize minhas análises como uma vantagem estratégica.</p>
+        Mas lembre-se: mesmo a melhor inteligência artificial não pode prever o futuro. Aposte com responsabilidade e utilize minhas análises como uma vantagem estratégica.<br><br>
+        Ao clicar em <strong>Manda ver Thiagotron!</strong>, todos os jogos de hoje sem palpite serão apostados e salvos automaticamente.</p>
+        <div class="thiagotron-disclaimer">⚠️ A plataforma não se responsabiliza pelos palpites gerados pelo Thiagotron.</div>
         <div class="thiagotron-progress" id="thiagotron-progress"></div>
         <div class="modal-btns">
           <button class="btn btn-thiagotron" id="btn-manda-ver" onclick="thiagotronBetAll()">Manda ver Thiagotron!</button>
