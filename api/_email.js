@@ -49,7 +49,7 @@ async function sendEmail(to, subject, html) {
     }
     return true;
   } catch (e) {
-    console.error('[email] Exceção:', e.message);
+    console.error('[email] Exceção:', e.message, e.cause || '');
     return false;
   }
 }
