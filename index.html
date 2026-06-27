@@ -709,10 +709,23 @@
     .admin-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
     .spinner {
-      text-align: center;
-      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 40px 20px;
       color: var(--text-secondary);
       font-size: 14px;
+    }
+    .spinner::before {
+      content: '';
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
     }
 
     /* ---- PROFILE SHEET ---- */
