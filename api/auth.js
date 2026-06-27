@@ -22,6 +22,7 @@ async function getDb() {
     sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_token TEXT`.catch(() => {}),
     sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_reminders BOOLEAN DEFAULT TRUE`.catch(() => {}),
     sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS paid BOOLEAN DEFAULT FALSE`.catch(() => {}),
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`.catch(() => {}),
   ]);
   return sql;
 }
@@ -72,7 +73,7 @@ module.exports = async function handler(req, res) {
       const { nick, pass } = req.body;
       if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
       const encoded = Buffer.from(pass).toString('base64');
-      const rows = await sql`SELECT nick, status, role, email, email_reminders, paid FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
+      const rows = await sql`SELECT nick, status, role, email, email_reminders, paid, avatar FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
       if (!rows.length) return res.status(401).json({ error: 'Nick ou senha incorretos' });
       return res.status(200).json(rows[0]);
     }
@@ -152,7 +153,7 @@ module.exports = async function handler(req, res) {
       if (!adminRows.length || adminRows[0].role !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado' });
       }
-      const rows = await sql`SELECT nick, email, status, role, paid, created_at FROM users ORDER BY created_at`;
+      const rows = await sql`SELECT nick, email, status, role, paid, avatar, created_at FROM users ORDER BY created_at`;
       return res.status(200).json({ users: rows });
     }
 
@@ -239,6 +240,17 @@ module.exports = async function handler(req, res) {
       }
       await sql`DELETE FROM palpites WHERE nick = ${targetNick}`;
       await sql`DELETE FROM users WHERE nick = ${targetNick}`;
+      return res.status(200).json({ ok: true });
+    }
+
+    if (req.method === 'POST' && action === 'save-avatar') {
+      const { nick, pass, avatar } = req.body;
+      if (!nick || !pass) return res.status(400).json({ error: 'nick e pass obrigatórios' });
+      const encoded = Buffer.from(pass).toString('base64');
+      const rows = await sql`SELECT nick FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
+      if (!rows.length) return res.status(401).json({ error: 'Credenciais inválidas' });
+      if (avatar && avatar.length > 40000) return res.status(400).json({ error: 'Imagem muito grande. Tente uma foto menor.' });
+      await sql`UPDATE users SET avatar = ${avatar || null} WHERE nick = ${nick}`;
       return res.status(200).json({ ok: true });
     }
 

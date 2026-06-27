@@ -122,7 +122,7 @@ module.exports = async function handler(req, res) {
       } catch (_) {}
 
       const [users, allPalpites, settingsRows, paidCountRows] = await Promise.all([
-        sql`SELECT nick FROM users WHERE status = 'approved'`,
+        sql`SELECT nick, avatar FROM users WHERE status = 'approved'`,
         sql`SELECT nick, game_id, home_score, away_score FROM palpites`,
         sql`SELECT key, value FROM settings`,
         sql`SELECT COUNT(*) as count FROM users WHERE paid = true AND status = 'approved'`,
@@ -151,7 +151,7 @@ module.exports = async function handler(req, res) {
             if (earned > 0) count++;
           }
         }
-        return { nick: u.nick, pts: score, count };
+        return { nick: u.nick, pts: score, count, avatar: u.avatar || null };
       }).sort((a, b) => b.pts - a.pts || b.count - a.count || a.nick.localeCompare(b.nick));
 
       return res.status(200).json({ ranking, prize });
