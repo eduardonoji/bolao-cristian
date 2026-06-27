@@ -127,7 +127,7 @@ module.exports = async function handler(req, res) {
       if (rows[0].approval_token !== token) {
         return res.status(403).send(htmlPage('Link inválido', 'Este link já foi utilizado ou é inválido.'));
       }
-      await sql`UPDATE users SET status = 'approved', approval_token = NULL WHERE nick = ${nick}`;
+      await sql`UPDATE users SET status = 'approved', paid = true, approval_token = NULL WHERE nick = ${nick}`;
       if (rows[0].email) {
         await sendEmail(rows[0].email, '✅ Bolão Snip — Você foi aprovado!', buildApprovedEmail(nick));
       }
@@ -163,8 +163,11 @@ module.exports = async function handler(req, res) {
       if (!adminRows.length || adminRows[0].role !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado' });
       }
-      const newStatus = decision === 'approve' ? 'approved' : 'rejected';
-      await sql`UPDATE users SET status = ${newStatus} WHERE nick = ${targetNick}`;
+      if (decision === 'approve') {
+        await sql`UPDATE users SET status = 'approved', paid = true WHERE nick = ${targetNick}`;
+      } else {
+        await sql`UPDATE users SET status = 'rejected' WHERE nick = ${targetNick}`;
+      }
       if (decision === 'approve') {
         const userRows = await sql`SELECT email FROM users WHERE nick = ${targetNick}`;
         if (userRows[0]?.email) {

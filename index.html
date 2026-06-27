@@ -1026,9 +1026,21 @@
   <!-- PENDING SCREEN -->
   <div id="screen-pending" class="screen">
     <div class="pending-icon">⏳</div>
-    <div class="pending-title">Aguardando aprovação</div>
-    <div class="pending-text">Seu cadastro está em análise.<br>O admin precisa aprovar sua conta para você participar do bolão.</div>
-    <button class="btn btn-primary" style="max-width:200px" onclick="doLogout()">Sair</button>
+    <div class="pending-title">Aguardando liberação</div>
+    <div class="pending-text">Faça o pagamento via PIX abaixo para entrar no bolão.<br>Após confirmar o pagamento, o admin vai te liberar.</div>
+    <div id="pending-payment" style="width:100%;max-width:320px;margin:16px auto 0">
+      <div id="pending-pix-qr-wrap" style="display:none;text-align:center;margin-bottom:12px">
+        <div id="pending-pix-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div>
+      </div>
+      <div id="pending-pix-key-info" style="display:none;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:2px">Valor</div>
+        <div id="pending-pix-value" style="font-size:18px;font-weight:800;color:#fcd34d;margin-bottom:10px"></div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Chave PIX:</div>
+        <div id="pending-pix-key-display" style="font-size:13px;font-weight:600;color:#f0f0f0;background:var(--bg-input);padding:10px 12px;border-radius:8px;cursor:pointer;word-break:break-all" onclick="copyPendingPixKey()"></div>
+        <div id="pending-pix-copy-hint" style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:center">Toque para copiar</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="max-width:200px;margin-top:24px" onclick="doLogout()">Sair</button>
   </div>
 
   <!-- MAIN SCREEN -->
@@ -1421,6 +1433,7 @@ function afterAuth(data, pass) {
   if (data.status === 'pending') {
     showScreen('pending');
     startStatusPolling();
+    loadPendingPayment();
   } else if (data.status === 'approved') {
     enterMain();
   } else {
@@ -2224,7 +2237,7 @@ function renderAdminPending(users) {
         ${u.email ? `<div style="font-size:11px;color:var(--text-muted)">${esc(u.email)}</div>` : ''}
       </div>
       <div class="admin-actions">
-        <button class="btn btn-sm btn-approve" data-nick="${esc(u.nick)}" onclick="adminDecide(this.dataset.nick, 'approve')">${icon('check',13)} Aprovar</button>
+        <button class="btn btn-sm btn-approve" data-nick="${esc(u.nick)}" onclick="adminDecide(this.dataset.nick, 'approve')">${icon('check',13)} Liberar</button>
         <button class="btn btn-sm btn-reject" data-nick="${esc(u.nick)}" onclick="adminDecide(this.dataset.nick, 'reject')">${icon('x',13)} Negar</button>
       </div>
     </div>
@@ -2364,6 +2377,39 @@ function buildPixPayload(key, name, city, value) {
   return payload + crc16ccitt(payload).toString(16).toUpperCase().padStart(4, '0');
 }
 
+async function loadPendingPayment() {
+  try {
+    const r = await fetch('/api/bolao?action=settings');
+    const { settings } = await r.json();
+    const entryValue = parseFloat(settings.entry_value || '0') || 0;
+    if (!settings.pix_key || entryValue <= 0) return;
+    document.getElementById('pending-pix-value').textContent = `R$ ${entryValue.toFixed(2).replace('.', ',')}`;
+    document.getElementById('pending-pix-key-display').textContent = settings.pix_key;
+    document.getElementById('pending-pix-key-info').style.display = 'block';
+    try {
+      const payload = buildPixPayload(settings.pix_key, settings.pix_name || 'Bolao Snip', settings.pix_city || 'Manaus', entryValue);
+      const qr = qrcode(0, 'M');
+      qr.addData(payload);
+      qr.make();
+      document.getElementById('pending-pix-qr').innerHTML = qr.createImgTag(4);
+      document.getElementById('pending-pix-qr-wrap').style.display = 'block';
+    } catch (_) {}
+  } catch (_) {}
+}
+
+async function copyPendingPixKey() {
+  const key = document.getElementById('pending-pix-key-display').textContent;
+  const hint = document.getElementById('pending-pix-copy-hint');
+  try {
+    await navigator.clipboard.writeText(key);
+    hint.textContent = 'Copiado!';
+    hint.style.color = 'var(--green-text)';
+  } catch (_) {
+    hint.textContent = 'Copie manualmente';
+  }
+  setTimeout(() => { hint.textContent = 'Toque para copiar'; hint.style.color = ''; }, 2000);
+}
+
 async function loadPaymentBanner() {
   try {
     const r = await fetch('/api/bolao?action=settings');
@@ -2496,7 +2542,7 @@ async function shareRanking() {
 // ---- INIT ----
 if (session) {
   if (session.status === 'approved') enterMain();
-  else if (session.status === 'pending') { showScreen('pending'); startStatusPolling(); }
+  else if (session.status === 'pending') { showScreen('pending'); startStatusPolling(); loadPendingPayment(); }
   else showScreen('auth');
 } else {
   showScreen('auth');
