@@ -294,17 +294,75 @@
       margin-top: 4px;
     }
     .games-header .section-title { margin: 0; }
+    @property --tia-angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+    @keyframes tia-spin {
+      to { --tia-angle: 360deg; }
+    }
+    @keyframes tia-flame-outer {
+      0%   { transform: skewX(-5deg) scaleY(1);    opacity: 0.85; }
+      25%  { transform: skewX( 4deg) scaleY(1.08); opacity: 1;    }
+      50%  { transform: skewX(-3deg) scaleY(0.93); opacity: 0.8;  }
+      75%  { transform: skewX( 5deg) scaleY(1.05); opacity: 0.95; }
+      100% { transform: skewX(-5deg) scaleY(1);    opacity: 0.85; }
+    }
+    @keyframes tia-flame-inner {
+      0%   { transform: skewX( 4deg) scaleY(0.9);  opacity: 0.75; }
+      35%  { transform: skewX(-5deg) scaleY(1.12); opacity: 1;    }
+      70%  { transform: skewX( 3deg) scaleY(1.0);  opacity: 0.8;  }
+      100% { transform: skewX( 4deg) scaleY(0.9);  opacity: 0.75; }
+    }
+    .thiagotron-flame-host {
+      position: relative;
+      width: 54px;
+      height: 54px;
+      cursor: pointer;
+      flex-shrink: 0;
+      overflow: visible;
+      transition: transform 0.2s;
+    }
+    .thiagotron-flame-host:hover { transform: scale(1.1); }
+    .thiagotron-flame-host::before {
+      content: '';
+      position: absolute;
+      bottom: 50%;
+      left: 0;
+      width: 54px;
+      height: 42px;
+      background: linear-gradient(to top, transparent 0%, #ff4500 28%, #ff7700 55%, transparent 100%);
+      border-radius: 45% 45% 0 0 / 55% 55% 0 0;
+      filter: blur(6px);
+      animation: tia-flame-outer 1.8s ease-in-out infinite;
+      pointer-events: none;
+      transform-origin: bottom center;
+    }
+    .thiagotron-flame-host::after {
+      content: '';
+      position: absolute;
+      bottom: 50%;
+      left: 0;
+      width: 54px;
+      height: 30px;
+      background: linear-gradient(to top, transparent 0%, #8a6500 32%, #a07820 58%, transparent 100%);
+      border-radius: 45% 45% 0 0 / 55% 55% 0 0;
+      filter: blur(2px);
+      animation: tia-flame-inner 1.4s ease-in-out infinite;
+      pointer-events: none;
+      transform-origin: bottom center;
+    }
     .thiagotron-avatar-wrap {
+      position: relative;
+      z-index: 1;
       width: 54px;
       height: 54px;
       border-radius: 50%;
-      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888, #833ab4, #5851db, #405de6);
+      background: conic-gradient(from var(--tia-angle), #f09433, #e6683c, #dc2743, #cc2366, #bc1888, #833ab4, #5851db, #405de6, #f09433);
       padding: 3px;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: transform 0.2s;
+      animation: tia-spin 4s linear infinite;
     }
-    .thiagotron-avatar-wrap:hover { transform: scale(1.1); }
     .thiagotron-avatar {
       width: 100%;
       height: 100%;
@@ -347,9 +405,10 @@
       width: 130px;
       height: 130px;
       border-radius: 50%;
-      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888, #833ab4, #5851db, #405de6);
+      background: conic-gradient(from var(--tia-angle), #f09433, #e6683c, #dc2743, #cc2366, #bc1888, #833ab4, #5851db, #405de6, #f09433);
       padding: 4px;
       flex-shrink: 0;
+      animation: tia-spin 4s linear infinite;
     }
     .thiagotron-modal .modal-avatar-wrap img {
       width: 100%;
@@ -845,8 +904,10 @@
     <div id="tab-games" class="tab-panel active">
       <div class="games-header">
         <div class="section-title" id="games-section-title">Jogos de Hoje</div>
-        <div class="thiagotron-avatar-wrap" onclick="openThiagotronModal()">
-          <img src="/thiagotron.png" class="thiagotron-avatar" alt="Thiagotron">
+        <div class="thiagotron-flame-host" onclick="openThiagotronModal()">
+          <div class="thiagotron-avatar-wrap">
+            <img src="/thiagotron.png" class="thiagotron-avatar" alt="Thiagotron">
+          </div>
         </div>
       </div>
       <div id="games-list"><div class="spinner">Carregando jogos...</div></div>
