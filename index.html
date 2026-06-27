@@ -1217,11 +1217,13 @@
 
       <!-- Card: Pendentes -->
       <div class="admin-section">
-        <div class="admin-section-hdr" style="cursor:default">
+        <div class="admin-section-hdr" onclick="toggleAdminSection('body-pending', this)">
           <div class="admin-section-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg></div>
           <div class="admin-section-label">Aguardando liberação</div>
           <span id="pending-badge" class="admin-badge" style="display:none"></span>
+          <div class="admin-chevron" id="pending-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
         </div>
+        <div id="body-pending" class="admin-section-body" style="display:none">
         <div id="body-pending" class="admin-section-body">
           <div id="admin-pending-list"><div class="spinner">Carregando...</div></div>
         </div>
@@ -2313,6 +2315,11 @@ async function loadAdminPending() {
 function renderAdminPending(users) {
   const badge = document.getElementById('pending-badge');
   if (badge) { badge.textContent = users.length; badge.style.display = users.length ? '' : 'none'; }
+  const body = document.getElementById('body-pending');
+  const chevron = document.getElementById('pending-chevron');
+  const hasPending = users.length > 0;
+  if (body) body.style.display = hasPending ? 'block' : 'none';
+  if (chevron) chevron.classList.toggle('open', hasPending);
   const el = document.getElementById('admin-pending-list');
   if (!users.length) {
     el.innerHTML = '<div class="empty-state" style="padding:16px 0">Nenhum pendente ✅</div>';
