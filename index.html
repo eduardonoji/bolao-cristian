@@ -290,8 +290,18 @@
     .nav-item:active { opacity: 0.7; }
 
     /* Tab Panels */
+    #tab-viewport { position: relative; overflow-x: hidden; }
     .tab-panel { display: none; padding: 16px; }
     .tab-panel.active { display: block; }
+    .tab-panel.tab-slide-out {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: block; z-index: 1; pointer-events: none;
+      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-panel.tab-slide-in {
+      display: block;
+      transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
     /* ---- GAMES ---- */
     .section-title {
@@ -990,6 +1000,9 @@
       <button class="logout-btn" onclick="doLogout()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"/><path d="M9 12h12l-3 -3"/><path d="M18 15l3 -3"/></svg>Sair</button>
     </div>
 
+    <!-- Tab Viewport — overflow-x: hidden para clipar slides entre abas -->
+    <div id="tab-viewport">
+
     <!-- Games Tab -->
     <div id="tab-games" class="tab-panel active">
       <div class="games-header">
@@ -1104,6 +1117,8 @@
       <div class="section-title" style="margin-top:20px"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/></svg> Todos os usuários</div>
       <div id="admin-all-list"><div class="spinner">Carregando...</div></div>
     </div>
+
+    </div><!-- /tab-viewport -->
 
     <!-- Bottom Nav -->
     <nav class="bottom-nav" id="bottom-nav">
@@ -1347,18 +1362,62 @@ function updateNavIndicator(btn, instant) {
   if (instant) requestAnimationFrame(() => { indicator.style.transition = ''; });
 }
 
+const TAB_ORDER_ALL = ['games', 'ranking', 'rules', 'conta', 'admin'];
+let _tabAnimating = false;
+
 function switchTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => {
-    p.classList.remove('active');
-    p.style.display = 'none';
-  });
-  const panel = document.getElementById('tab-' + name);
-  panel.style.display = 'block';
-  panel.classList.add('active');
+  const oldPanel = document.querySelector('.tab-panel.active');
+  const newPanel = document.getElementById('tab-' + name);
 
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   updateNavIndicator(btn);
+
+  if (!oldPanel || oldPanel === newPanel || _tabAnimating) {
+    if (!oldPanel) { newPanel.style.display = 'block'; newPanel.classList.add('active'); }
+    if (name === 'ranking') loadRanking();
+    if (name === 'conta') loadContaTab();
+    if (name === 'admin') loadAdminPending();
+    return;
+  }
+
+  const oldIdx = TAB_ORDER_ALL.indexOf(oldPanel.id.replace('tab-', ''));
+  const newIdx = TAB_ORDER_ALL.indexOf(name);
+  const toRight = newIdx > oldIdx;
+  const DURATION = 320;
+
+  _tabAnimating = true;
+
+  // Freeze viewport height so it doesn't collapse when old panel goes absolute
+  const viewport = document.getElementById('tab-viewport');
+  viewport.style.minHeight = oldPanel.offsetHeight + 'px';
+
+  // Old panel: absolute overlay, slides out (parallax -25%)
+  oldPanel.classList.add('tab-slide-out');
+  oldPanel.style.transform = 'translateX(0)';
+
+  // New panel: starts off-screen, slides in
+  newPanel.classList.add('tab-slide-in');
+  newPanel.style.display = 'block';
+  newPanel.style.transform = `translateX(${toRight ? '100%' : '-100%'})`;
+
+  // Force reflow so initial transforms are painted before transition fires
+  newPanel.offsetHeight;
+
+  // Trigger both transitions simultaneously
+  oldPanel.style.transform = `translateX(${toRight ? '-25%' : '25%'})`;
+  newPanel.style.transform = 'translateX(0)';
+
+  setTimeout(() => {
+    // Finalize state
+    oldPanel.classList.remove('active', 'tab-slide-out');
+    oldPanel.style.cssText = '';
+    newPanel.classList.remove('tab-slide-in');
+    newPanel.style.cssText = '';
+    newPanel.classList.add('active');
+    viewport.style.minHeight = '';
+    _tabAnimating = false;
+  }, DURATION + 16);
 
   if (name === 'ranking') loadRanking();
   if (name === 'conta') loadContaTab();
@@ -1367,7 +1426,7 @@ function switchTab(name, btn) {
 
 // ---- SWIPE NAV ----
 function initSwipeNav() {
-  const TAB_ORDER = ['games', 'ranking', 'rules', 'conta'];
+  const TAB_ORDER = TAB_ORDER_ALL.filter(t => t !== 'admin');
   const mainEl = document.getElementById('screen-main');
   if (!mainEl || mainEl._swipeInited) return;
   mainEl._swipeInited = true;
