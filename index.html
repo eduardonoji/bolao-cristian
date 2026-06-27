@@ -1626,6 +1626,7 @@ function stopStatusPolling() {
 function toggleRulesVideo() {
   const v = document.getElementById('rules-video');
   v.muted = !v.muted;
+  if (v.paused) v.play().catch(() => {});
   document.getElementById('rules-video-icon-muted').style.display = v.muted ? '' : 'none';
   document.getElementById('rules-video-icon-sound').style.display = v.muted ? 'none' : '';
 }
@@ -3000,6 +3001,13 @@ if (session) {
 // Fix: tab panels hidden by default except games
 document.querySelectorAll('.tab-panel').forEach(p => {
   if (p.id !== 'tab-games') { p.style.display = 'none'; p.classList.remove('active'); }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    const v = document.getElementById('rules-video');
+    if (v && v.paused) v.play().catch(() => {});
+  }
 });
 </script>
 </body>
