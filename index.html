@@ -1428,6 +1428,7 @@
     <div class="sheet-header-info">
       <div class="sheet-title" id="sheet-nick"></div>
       <div class="sheet-subtitle" id="sheet-total"></div>
+      <div id="sheet-stats" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px"></div>
     </div>
     <button class="sheet-close" onclick="closeProfile()">×</button>
   </div>
@@ -2194,6 +2195,7 @@ function renderRanking(ranking, prize) {
 async function openProfile(nick, pts) {
   document.getElementById('sheet-nick').textContent = nick + (nick === session.nick ? ' (você)' : '');
   document.getElementById('sheet-total').textContent = `${pts} pts acumulados`;
+  document.getElementById('sheet-stats').style.display = 'none';
   document.getElementById('sheet-body').innerHTML = '<div class="spinner">Carregando...</div>';
   document.getElementById('sheet-overlay').classList.add('open');
   document.getElementById('profile-sheet').classList.add('open');
@@ -2254,7 +2256,30 @@ function renderProfile(data) {
     document.getElementById('sheet-body').innerHTML = '<div class="empty-state">Nenhuma aposta registrada.</div>';
     return;
   }
-  document.getElementById('sheet-total').textContent = `${data.totalPts} pts acumulados · ${data.bets.length} aposta${data.bets.length !== 1 ? 's' : ''}`;
+  document.getElementById('sheet-total').textContent = `${data.totalPts} pts · ${data.bets.length} aposta${data.bets.length !== 1 ? 's' : ''}`;
+
+  const concluded = data.bets.filter(b => b.reason !== 'aguardando');
+  const exact    = concluded.filter(b => b.reason === 'exato').length;
+  const result   = concluded.filter(b => b.reason === 'resultado').length;
+  const goal     = concluded.filter(b => b.reason === 'gol').length;
+  const miss     = concluded.filter(b => b.reason === 'errou').length;
+  const hitRate  = concluded.length ? Math.round((exact + result + goal) / concluded.length * 100) : null;
+
+  const statChip = (label, val, color) =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap">
+      <span style="color:${color};font-size:13px">${val}</span>
+      <span style="color:var(--text-muted)">${label}</span>
+    </span>`;
+
+  const statsEl = document.getElementById('sheet-stats');
+  statsEl.style.display = concluded.length ? 'flex' : 'none';
+  statsEl.innerHTML = [
+    statChip('exatos',     exact,  '#4ade80'),
+    statChip('resultados', result, '#60a5fa'),
+    statChip('gols',       goal,   '#fbbf24'),
+    statChip('erros',      miss,   '#f87171'),
+    hitRate !== null ? statChip('acerto',  hitRate + '%', '#a78bfa') : '',
+  ].join('');
 
   const rows = data.bets.map(b => {
     const d = new Date(b.datetime);
