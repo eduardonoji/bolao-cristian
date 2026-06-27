@@ -2263,8 +2263,10 @@ function renderProfile(data) {
   const miss     = concluded.filter(b => b.reason === 'errou').length;
   const hitRate  = concluded.length ? Math.round((exact + result + goal) / concluded.length * 100) : null;
 
-  const hitRateStr = hitRate !== null ? ` · ${hitRate}% acerto` : '';
-  document.getElementById('sheet-total').textContent = `${data.totalPts} pts · ${data.bets.length} aposta${data.bets.length !== 1 ? 's' : ''}${hitRateStr}`;
+  const hitRateColor = hitRate === null ? '' : hitRate >= 70 ? '#4ade80' : hitRate >= 50 ? '#fbbf24' : '#f87171';
+  const hitRateSpan  = hitRate !== null ? ` · <span style="color:${hitRateColor};font-weight:700">${hitRate}%</span> acerto` : '';
+  document.getElementById('sheet-total').innerHTML =
+    `${data.totalPts} pts · ${data.bets.length} aposta${data.bets.length !== 1 ? 's' : ''}${hitRateSpan}`;
 
   const statChip = (label, val, color) =>
     `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;white-space:nowrap">
