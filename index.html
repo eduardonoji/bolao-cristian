@@ -1591,6 +1591,7 @@ function renderInsightsBar() {
 
 function openInsightsModal() {
   if (!insightsCache) return;
+  document.body.style.overflow = 'hidden';
   const { total: t, yesterday: y } = insightsCache;
   let html = '';
 
@@ -1624,6 +1625,7 @@ function openInsightsModal() {
 
 function closeInsightsModal() {
   document.getElementById('insights-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 // ---- GAMES ----
@@ -1822,10 +1824,12 @@ function openThiagotronModal() {
   btn.style.display = '';
   btn.disabled = false;
   btn.textContent = 'Manda ver ThIAgotron!';
+  document.body.style.overflow = 'hidden';
 }
 
 function closeThiagotronModal() {
   document.getElementById('thiagotron-overlay').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 async function thiagotronBetAll() {
