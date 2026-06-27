@@ -206,11 +206,15 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST' && action === 'admin-edit-user') {
-      const { adminNick, adminPass, targetNick, newNick, newEmail, newPass } = req.body;
+      const { adminNick, adminPass, targetNick, newNick, newEmail, newPass, removeAvatar } = req.body;
       if (!targetNick) return res.status(400).json({ error: 'targetNick obrigatório' });
       const encoded = Buffer.from(adminPass || '').toString('base64');
       const adminRows = await sql`SELECT role FROM users WHERE nick = ${adminNick} AND pass = ${encoded}`;
       if (!adminRows.length || adminRows[0].role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+      if (removeAvatar) {
+        await sql`UPDATE users SET avatar = NULL WHERE nick = ${targetNick}`;
+        return res.status(200).json({ ok: true });
+      }
       const finalNick = newNick && newNick.trim().length >= 2 ? newNick.trim() : targetNick;
       const finalEmail = newEmail && newEmail.includes('@') ? newEmail.trim().toLowerCase() : null;
       if (finalNick !== targetNick) {
