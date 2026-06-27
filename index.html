@@ -1674,6 +1674,12 @@ const TAB_ORDER_ALL = ['games', 'ranking', 'rules', 'conta', 'admin'];
 let _tabAnimating = false;
 
 function switchTab(name, btn) {
+  const v = document.getElementById('rules-video');
+  if (v && !v.muted) {
+    v.muted = true;
+    document.getElementById('rules-video-icon-muted').style.display = '';
+    document.getElementById('rules-video-icon-sound').style.display = 'none';
+  }
   const oldPanel = document.querySelector('.tab-panel.active');
   const newPanel = document.getElementById('tab-' + name);
 
