@@ -1274,7 +1274,7 @@
             <label class="form-label">Cidade <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
             <input id="pix-city-input" class="form-input" type="text" placeholder="Manaus">
           </div>
-          <button class="btn btn-primary" style="margin-top:16px" onclick="savePixSettings()">Salvar</button>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="savePixSettings(this)">Salvar</button>
           <div id="pix-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
         </div>
       </div>
@@ -1302,7 +1302,7 @@
             <input id="pts-goal" class="form-input admin-pts-input" type="number" min="0" value="2">
             <span style="font-size:12px;color:var(--text-muted)">pts</span>
           </div>
-          <button class="btn btn-primary" style="margin-top:16px" onclick="saveScoringSettings()">Salvar</button>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="saveScoringSettings(this)">Salvar</button>
           <div id="pts-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
         </div>
       </div>
@@ -2567,35 +2567,38 @@ async function loadPixSettings() {
   document.getElementById('pts-goal').value   = settings.pts_goal   || '2';
 }
 
-async function saveScoringSettings() {
+async function saveScoringSettings(btn) {
   const ptsExact  = parseInt(document.getElementById('pts-exact').value)  || 10;
   const ptsResult = parseInt(document.getElementById('pts-result').value) || 5;
   const ptsGoal   = parseInt(document.getElementById('pts-goal').value)   || 2;
   const msg = document.getElementById('pts-settings-msg');
+  btn.disabled = true; btn.textContent = 'Salvando...'; btn.style.opacity = '0.7';
   try {
     const r = await fetch('/api/bolao?action=save-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, ptsExact, ptsResult, ptsGoal })
     });
-    scoringPts = { exact: ptsExact, result: ptsResult, goal: ptsGoal };
+    if (r.ok) scoringPts = { exact: ptsExact, result: ptsResult, goal: ptsGoal };
     msg.textContent = r.ok ? 'Pontuação salva!' : (await r.json()).error || 'Erro.';
     msg.style.color = r.ok ? 'var(--green-text)' : 'var(--red-text)';
   } catch (_) {
     msg.textContent = 'Erro de conexão.';
     msg.style.color = 'var(--red-text)';
   }
+  btn.disabled = false; btn.textContent = 'Salvar'; btn.style.opacity = '';
   msg.style.display = 'block';
   setTimeout(() => { msg.style.display = 'none'; }, 3000);
 }
 
-async function savePixSettings() {
+async function savePixSettings(btn) {
   const pixKey = document.getElementById('pix-key-input').value.trim();
   const pixKeyType = document.getElementById('pix-key-type').value;
   const pixName = document.getElementById('pix-name-input').value.trim();
   const pixCity = document.getElementById('pix-city-input').value.trim();
   const entryValue = parseFloat(document.getElementById('pix-entry-value-input').value) || 0;
   const msg = document.getElementById('pix-settings-msg');
+  btn.disabled = true; btn.textContent = 'Salvando...'; btn.style.opacity = '0.7';
   try {
     const r = await fetch('/api/bolao?action=save-settings', {
       method: 'POST',
@@ -2606,14 +2609,14 @@ async function savePixSettings() {
       msg.textContent = 'Configurações salvas!';
       msg.style.color = 'var(--green-text)';
     } else {
-      const d = await r.json();
-      msg.textContent = d.error || 'Erro ao salvar.';
+      msg.textContent = (await r.json()).error || 'Erro ao salvar.';
       msg.style.color = 'var(--red-text)';
     }
   } catch (_) {
     msg.textContent = 'Erro de conexão.';
     msg.style.color = 'var(--red-text)';
   }
+  btn.disabled = false; btn.textContent = 'Salvar'; btn.style.opacity = '';
   msg.style.display = 'block';
   setTimeout(() => { msg.style.display = 'none'; }, 3000);
 }
