@@ -1305,6 +1305,13 @@
           </div>
           <button class="btn btn-primary" style="margin-top:16px" onclick="saveScoringSettings(this)">Salvar</button>
           <div id="pts-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
+          <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:16px">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Zona de perigo</div>
+            <button class="btn" style="width:100%;background:rgba(239,68,68,0.08);color:#f87171;border:1px solid rgba(239,68,68,0.25);font-size:13px" onclick="openResetScoresModal()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M3 6h18"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+              Zerar todos os palpites
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1385,6 +1392,24 @@
     <div class="confirm-btns" style="margin-top:16px">
       <button class="btn" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border)" onclick="closeEditUserModal()">Cancelar</button>
       <button id="btn-edit-user-save" class="btn btn-primary" onclick="confirmEditUser()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Zerar palpites -->
+<div class="confirm-overlay" id="reset-scores-overlay">
+  <div class="confirm-box">
+    <h3 style="color:#f87171"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Zerar todos os palpites</h3>
+    <p style="font-size:13px;color:var(--text-secondary);margin:0 0 10px">Esta ação <strong style="color:var(--text-primary)">apaga todos os palpites</strong> de todos os participantes de forma permanente e irreversível.</p>
+    <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px;line-height:1.55">Pode ser útil para reiniciar o bolão entre fases da Copa — por exemplo, ao fim da fase de grupos para uma nova rodada só com oitavas, quartas, semi e final — mantendo os participantes e o prêmio acumulado intactos.</p>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label" style="color:#f87171">Digite <strong>ZERAR TUDO</strong> para confirmar</label>
+      <input id="reset-scores-confirm" class="form-input" type="text" autocomplete="off" placeholder="ZERAR TUDO" oninput="onResetScoresInput()">
+    </div>
+    <div id="reset-scores-error" class="error-msg" style="margin-top:8px"></div>
+    <div class="confirm-btns" style="margin-top:16px">
+      <button class="btn" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border)" onclick="closeResetScoresModal()">Cancelar</button>
+      <button id="btn-reset-scores" class="btn" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);opacity:0.4;pointer-events:none" onclick="confirmResetScores()">Zerar tudo</button>
     </div>
   </div>
 </div>
@@ -2513,6 +2538,43 @@ async function confirmEditUser() {
     else { const d = await r.json(); errEl.textContent = d.error || 'Erro.'; errEl.classList.add('visible'); }
   } catch (_) { errEl.textContent = 'Erro de conexão.'; errEl.classList.add('visible'); }
   btn.disabled = false; btn.textContent = 'Salvar';
+}
+
+function openResetScoresModal() {
+  document.getElementById('reset-scores-confirm').value = '';
+  document.getElementById('reset-scores-error').textContent = '';
+  document.getElementById('reset-scores-error').classList.remove('visible');
+  const btn = document.getElementById('btn-reset-scores');
+  btn.style.opacity = '0.4'; btn.style.pointerEvents = 'none';
+  document.getElementById('reset-scores-overlay').classList.add('open');
+}
+
+function closeResetScoresModal() {
+  document.getElementById('reset-scores-overlay').classList.remove('open');
+}
+
+function onResetScoresInput() {
+  const val = document.getElementById('reset-scores-confirm').value;
+  const btn = document.getElementById('btn-reset-scores');
+  const ok = val === 'ZERAR TUDO';
+  btn.style.opacity = ok ? '1' : '0.4';
+  btn.style.pointerEvents = ok ? 'auto' : 'none';
+}
+
+async function confirmResetScores() {
+  const errEl = document.getElementById('reset-scores-error');
+  const btn = document.getElementById('btn-reset-scores');
+  btn.disabled = true; btn.textContent = 'Zerando...';
+  try {
+    const r = await fetch('/api/bolao?action=reset-scores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass })
+    });
+    if (r.ok) { closeResetScoresModal(); alert('Todos os palpites foram apagados.'); }
+    else { const d = await r.json(); errEl.textContent = d.error || 'Erro.'; errEl.classList.add('visible'); }
+  } catch (_) { errEl.textContent = 'Erro de conexão.'; errEl.classList.add('visible'); }
+  btn.disabled = false; btn.textContent = 'Zerar tudo';
 }
 
 let _deleteTarget = null;

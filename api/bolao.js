@@ -286,6 +286,14 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
+    if (req.method === 'POST' && action === 'reset-scores') {
+      const { adminNick, adminPass } = req.body;
+      const admin = await verifyUser(adminNick, adminPass);
+      if (!admin || admin.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+      await sql`DELETE FROM palpites`;
+      return res.status(200).json({ ok: true });
+    }
+
     if (req.method === 'POST' && action === 'mark-paid') {
       const { adminNick, adminPass, targetNick, paid } = req.body;
       const admin = await verifyUser(adminNick, adminPass);
