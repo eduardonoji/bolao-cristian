@@ -2383,8 +2383,6 @@ function renderAdminPending(users) {
   const body = document.getElementById('body-pending');
   const chevron = document.getElementById('pending-chevron');
   const hasPending = users.length > 0;
-  if (body) body.classList.toggle('open', hasPending);
-  if (chevron) chevron.classList.toggle('open', hasPending);
   const el = document.getElementById('admin-pending-list');
   if (!users.length) {
     el.innerHTML = '<div class="empty-state" style="padding:16px 0">Nenhum pendente ✅</div>';
