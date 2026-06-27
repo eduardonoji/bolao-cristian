@@ -118,7 +118,9 @@ module.exports = async function handler(req, res) {
       try {
         const games = await fetchGames();
         finishedOrLive = games.filter(g => g.status === 'completed' || g.status === 'in_progress');
-      } catch (_) {}
+      } catch (_) {
+        return res.status(503).json({ error: 'Falha ao buscar jogos. Tente novamente.' });
+      }
 
       const [users, allPalpites, settingsRows, paidCountRows] = await Promise.all([
         sql`SELECT nick, avatar FROM users WHERE status = 'approved'`,

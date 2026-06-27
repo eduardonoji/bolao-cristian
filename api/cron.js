@@ -108,6 +108,12 @@ module.exports = async function handler(req, res) {
     todayScheduled.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
     const triggerGame = todayScheduled[0];
 
+    // Só dispara entre 90 e 30 minutos antes do primeiro jogo
+    const minutesUntilFirst = (new Date(triggerGame.datetime) - new Date()) / 60000;
+    if (minutesUntilFirst < 30 || minutesUntilFirst > 90) {
+      return res.status(200).json({ ok: true, message: `Fora da janela (${Math.round(minutesUntilFirst)} min para o primeiro jogo).` });
+    }
+
     const users = await sql`SELECT nick, email FROM users WHERE status = 'approved' AND email IS NOT NULL AND email != '' AND email_reminders IS NOT FALSE`;
     if (!users.length) {
       return res.status(200).json({ ok: true, message: 'Nenhum usuário com e-mail.' });
