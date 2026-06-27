@@ -14,6 +14,13 @@ async function getDb() {
       UNIQUE(nick, game_id)
     )
   `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS paid BOOLEAN DEFAULT FALSE`.catch(() => {});
   return sql;
 }
 
@@ -43,7 +50,7 @@ function calcReason(p, game) {
 async function verifyUser(nick, pass) {
   const sql = neon(process.env.DATABASE_URL);
   const encoded = Buffer.from(pass).toString('base64');
-  const rows = await sql`SELECT nick, status, role FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
+  const rows = await sql`SELECT nick, status, role, paid FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
   return rows.length ? rows[0] : null;
 }
 
@@ -66,6 +73,7 @@ module.exports = async function handler(req, res) {
       const user = await verifyUser(nick, pass);
       if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
       if (user.status !== 'approved') return res.status(403).json({ error: 'Usuário não aprovado' });
+      if (!user.paid && user.role !== 'admin') return res.status(403).json({ error: 'Pagamento pendente' });
 
       const games = await fetchGames();
       const game = games.find(g => g.id === gameId);
@@ -105,8 +113,17 @@ module.exports = async function handler(req, res) {
         finishedOrLive = games.filter(g => g.status === 'completed' || g.status === 'in_progress');
       } catch (_) {}
 
-      const users = await sql`SELECT nick FROM users WHERE status = 'approved'`;
-      const allPalpites = await sql`SELECT nick, game_id, home_score, away_score FROM palpites`;
+      const [users, allPalpites, settingsRows, paidCountRows] = await Promise.all([
+        sql`SELECT nick FROM users WHERE status = 'approved'`,
+        sql`SELECT nick, game_id, home_score, away_score FROM palpites`,
+        sql`SELECT key, value FROM settings`,
+        sql`SELECT COUNT(*) as count FROM users WHERE paid = true AND status = 'approved'`,
+      ]);
+
+      const settingsMap = {};
+      for (const r of settingsRows) settingsMap[r.key] = r.value;
+      const entryValue = parseFloat(settingsMap.entry_value || '0') || 0;
+      const prize = (parseInt(paidCountRows[0].count) || 0) * entryValue;
 
       const byNick = {};
       for (const p of allPalpites) {
@@ -128,7 +145,7 @@ module.exports = async function handler(req, res) {
         return { nick: u.nick, pts, count };
       }).sort((a, b) => b.pts - a.pts || b.count - a.count || a.nick.localeCompare(b.nick));
 
-      return res.status(200).json({ ranking });
+      return res.status(200).json({ ranking, prize });
     }
 
     if (req.method === 'GET' && action === 'profile') {
@@ -219,6 +236,38 @@ module.exports = async function handler(req, res) {
       }
 
       return res.status(200).json({ total: summarize(completed), yesterday: summarize(yesterday) });
+    }
+
+    if (req.method === 'GET' && action === 'settings') {
+      const rows = await sql`SELECT key, value FROM settings`;
+      const s = {};
+      for (const r of rows) s[r.key] = r.value;
+      return res.status(200).json({ settings: s });
+    }
+
+    if (req.method === 'POST' && action === 'save-settings') {
+      const { adminNick, adminPass, pixKey, pixKeyType, pixName, pixCity, entryValue } = req.body;
+      const admin = await verifyUser(adminNick, adminPass);
+      if (!admin || admin.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+      const entries = [
+        ['pix_key', pixKey || ''],
+        ['pix_key_type', pixKeyType || 'chave_aleatoria'],
+        ['pix_name', pixName || ''],
+        ['pix_city', pixCity || ''],
+        ['entry_value', String(parseFloat(entryValue) || 0)],
+      ];
+      for (const [key, value] of entries) {
+        await sql`INSERT INTO settings (key, value) VALUES (${key}, ${value}) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`;
+      }
+      return res.status(200).json({ ok: true });
+    }
+
+    if (req.method === 'POST' && action === 'mark-paid') {
+      const { adminNick, adminPass, targetNick, paid } = req.body;
+      const admin = await verifyUser(adminNick, adminPass);
+      if (!admin || admin.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
+      await sql`UPDATE users SET paid = ${paid === true} WHERE nick = ${targetNick}`;
+      return res.status(200).json({ ok: true });
     }
 
     return res.status(400).json({ error: 'Ação inválida' });

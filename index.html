@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=optional" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1060,6 +1061,19 @@
           </div>
         </div>
       </div>
+      <div id="payment-banner" style="display:none;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:12px;padding:16px;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:700;color:#fbbf24;margin-bottom:4px">Pagamento pendente</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Para apostar, pague <span id="pix-entry-value-label" style="font-weight:700;color:#f0f0f0">R$ —</span> via PIX.</div>
+        <div id="pix-qr-wrap" style="display:none;text-align:center;margin-bottom:12px">
+          <div id="pix-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div>
+        </div>
+        <div id="pix-key-info" style="display:none">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Chave PIX:</div>
+          <div id="pix-key-display" style="font-size:13px;font-weight:600;color:#f0f0f0;background:var(--bg-input);padding:10px 12px;border-radius:8px;cursor:pointer;word-break:break-all" onclick="copyPixKey()"></div>
+          <div id="pix-copy-hint" style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:center">Toque para copiar</div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:10px">Após pagar, aguarde o admin confirmar o pagamento.</div>
+      </div>
       <div id="games-list"><div class="spinner">Carregando jogos...</div></div>
     </div>
 
@@ -1102,6 +1116,11 @@
           <img src="/avatar.png" style="width:28px;height:28px;border-radius:50%;object-fit:cover;object-position:center top;flex-shrink:0">
           <span style="font-size:14px;font-weight:700;color:var(--text-primary);flex:1">Bolão Snip · Classificação</span>
           <button onclick="shareRanking()" style="background:rgba(34,197,94,0.15);border:none;cursor:pointer;padding:6px 10px;border-radius:8px;color:#4ade80" title="Compartilhar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2"/><path d="M9 13a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg></button>
+        </div>
+        <div id="prize-banner" style="display:none;text-align:center;padding:12px 16px;margin-bottom:12px;background:linear-gradient(135deg,rgba(252,211,77,0.12),rgba(245,158,11,0.08));border:1px solid rgba(252,211,77,0.2);border-radius:12px">
+          <div style="font-size:11px;letter-spacing:0.08em;font-weight:700;color:#fbbf24;margin-bottom:2px">PRÊMIO ACUMULADO</div>
+          <div id="prize-amount" style="font-size:30px;font-weight:800;color:#fcd34d"></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Para o 1º lugar</div>
         </div>
         <div id="ranking-list"><div class="spinner">Carregando...</div></div>
       </div>
@@ -1170,7 +1189,38 @@
 
     <!-- Admin Tab -->
     <div id="tab-admin" class="tab-panel" style="display:none">
-      <div class="section-title"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 7v5l3 3"/></svg> Pendentes</div>
+      <div class="section-title"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 8v4l3 3"/></svg> Configurações PIX</div>
+      <div class="auth-card">
+        <div class="form-group">
+          <label class="form-label">Valor por pessoa (R$)</label>
+          <input id="pix-entry-value-input" class="form-input" type="number" min="0" step="0.01" placeholder="20.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo da chave PIX</label>
+          <select id="pix-key-type" class="form-input" style="background:var(--bg-input);color:var(--text-primary)">
+            <option value="chave_aleatoria">Chave aleatória</option>
+            <option value="email">E-mail</option>
+            <option value="telefone">Telefone</option>
+            <option value="cpf">CPF</option>
+            <option value="cnpj">CNPJ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chave PIX</label>
+          <input id="pix-key-input" class="form-input" type="text" placeholder="sua chave pix">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome do recebedor <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
+          <input id="pix-name-input" class="form-input" type="text" placeholder="Seu Nome">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cidade <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
+          <input id="pix-city-input" class="form-input" type="text" placeholder="Manaus">
+        </div>
+        <button class="btn btn-primary" onclick="savePixSettings()">Salvar configurações</button>
+        <div id="pix-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
+      </div>
+      <div class="section-title" style="margin-top:4px"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 7v5l3 3"/></svg> Pendentes</div>
       <div id="admin-pending-list"><div class="spinner">Carregando...</div></div>
       <div class="section-title" style="margin-top:20px"><svg class="ti-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/></svg> Todos os usuários</div>
       <div id="admin-all-list"><div class="spinner">Carregando...</div></div>
@@ -1366,7 +1416,7 @@ async function doRegister() {
 }
 
 function afterAuth(data, pass) {
-  session = { nick: data.nick, pass, status: data.status, role: data.role, email: data.email || null, email_reminders: data.email_reminders !== false, savedAt: Date.now() };
+  session = { nick: data.nick, pass, status: data.status, role: data.role, email: data.email || null, email_reminders: data.email_reminders !== false, paid: data.paid === true, savedAt: Date.now() };
   localStorage.setItem('session', JSON.stringify(session));
   if (data.status === 'pending') {
     showScreen('pending');
@@ -1418,6 +1468,7 @@ function doLogout() {
 function enterMain() {
   document.getElementById('nav-admin').style.display = session.role === 'admin' ? 'flex' : 'none';
   showScreen('main');
+  if (!session.paid && session.role !== 'admin') loadPaymentBanner();
   loadGames();
   requestAnimationFrame(() => {
     const activeBtn = document.querySelector('.nav-item.active');
@@ -1652,6 +1703,10 @@ async function loadGames() {
 
 function renderGames() {
   if (!gamesCache) return;
+  if (!session.paid && session.role !== 'admin') {
+    document.getElementById('games-list').innerHTML = '';
+    return;
+  }
   const { start, end } = getWindowBounds();
   const todayGames = gamesCache.filter(g => {
     if (!g.datetime) return false;
@@ -1833,6 +1888,10 @@ function closeThiagotronModal() {
 }
 
 async function thiagotronBetAll() {
+  if (!session.paid && session.role !== 'admin') {
+    closeThiagotronModal();
+    return;
+  }
   const { start, end } = getWindowBounds();
   const openGames = (gamesCache || []).filter(g => {
     if (!g.datetime) return false;
@@ -1930,14 +1989,23 @@ async function loadRanking() {
   document.getElementById('ranking-list').innerHTML = '<div class="spinner">Calculando pontos...</div>';
   try {
     const r = await fetch('/api/bolao?action=ranking');
-    const { ranking } = await r.json();
-    renderRanking(ranking);
+    const { ranking, prize } = await r.json();
+    renderRanking(ranking, prize);
   } catch (e) {
     document.getElementById('ranking-list').innerHTML = '<div class="empty-state">Erro ao carregar ranking.</div>';
   }
 }
 
-function renderRanking(ranking) {
+function renderRanking(ranking, prize) {
+  const prizeBanner = document.getElementById('prize-banner');
+  if (prizeBanner) {
+    if (prize > 0) {
+      prizeBanner.style.display = 'block';
+      document.getElementById('prize-amount').textContent = `R$ ${prize.toFixed(2).replace('.', ',')}`;
+    } else {
+      prizeBanner.style.display = 'none';
+    }
+  }
   if (!ranking || !ranking.length) {
     document.getElementById('ranking-list').innerHTML = '<div class="empty-state">Nenhum palpite ainda.</div>';
     return;
@@ -2140,6 +2208,7 @@ async function loadAdminPending() {
   } catch (e) {
     document.getElementById('admin-pending-list').innerHTML = '<div class="empty-state">Erro ao carregar.</div>';
   }
+  loadPixSettings();
 }
 
 function renderAdminPending(users) {
@@ -2181,6 +2250,7 @@ function renderAdminAll(users) {
       </div>
       ${u.role !== 'admin' ? `
       <div class="admin-actions">
+        <button class="btn btn-sm" style="${u.paid ? 'background:rgba(34,197,94,0.15);color:#4ade80' : 'background:rgba(251,191,36,0.15);color:#fbbf24'}" data-nick="${esc(u.nick)}" data-paid="${u.paid ? 'true' : 'false'}" onclick="adminTogglePaid(this.dataset.nick, this.dataset.paid !== 'true')">${u.paid ? icon('check',13) + ' Pago' : '$ Pendente'}</button>
         <button class="btn btn-sm" style="background:rgba(251,191,36,0.15);color:#fbbf24" data-nick="${esc(u.nick)}" onclick="adminResetPassword(this.dataset.nick)">${icon('key',13)} Resetar senha</button>
         <button class="btn btn-sm btn-delete" data-nick="${esc(u.nick)}" onclick="adminDeleteUser(this.dataset.nick)">${icon('trash',13)} Excluir</button>
       </div>` : ''}
@@ -2258,6 +2328,136 @@ async function confirmDeleteUser() {
       alert(d.error || 'Erro ao excluir.');
     }
   } catch (e) {
+    alert('Erro de conexão.');
+  }
+}
+
+// ---- PIX ----
+function crc16ccitt(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc;
+}
+
+function buildPixPayload(key, name, city, value) {
+  function f(id, val) { return id + String(val.length).padStart(2, '0') + val; }
+  function norm(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9 ]/g, ''); }
+  const merchantAccount = f('00', 'br.gov.bcb.pix') + f('01', key);
+  const additional = f('05', 'bolaosnip');
+  const payload =
+    f('00', '01') +
+    f('26', merchantAccount) +
+    f('52', '0000') +
+    f('53', '986') +
+    f('54', value.toFixed(2)) +
+    f('58', 'BR') +
+    f('59', norm(name).substring(0, 25) || 'Bolao Snip') +
+    f('60', norm(city).substring(0, 15) || 'Manaus') +
+    f('62', additional) +
+    '6304';
+  return payload + crc16ccitt(payload).toString(16).toUpperCase().padStart(4, '0');
+}
+
+async function loadPaymentBanner() {
+  try {
+    const r = await fetch('/api/bolao?action=settings');
+    const { settings } = await r.json();
+    const entryValue = parseFloat(settings.entry_value || '0') || 0;
+    if (!settings.pix_key || entryValue <= 0) {
+      document.getElementById('payment-banner').style.display = 'block';
+      return;
+    }
+    document.getElementById('pix-entry-value-label').textContent = `R$ ${entryValue.toFixed(2).replace('.', ',')}`;
+    document.getElementById('pix-key-display').textContent = settings.pix_key;
+    document.getElementById('pix-key-info').style.display = 'block';
+    try {
+      const payload = buildPixPayload(settings.pix_key, settings.pix_name || 'Bolao Snip', settings.pix_city || 'Manaus', entryValue);
+      const qr = qrcode(0, 'M');
+      qr.addData(payload);
+      qr.make();
+      document.getElementById('pix-qr').innerHTML = qr.createImgTag(4);
+      document.getElementById('pix-qr-wrap').style.display = 'block';
+    } catch (_) {}
+    document.getElementById('payment-banner').style.display = 'block';
+  } catch (_) {
+    document.getElementById('payment-banner').style.display = 'block';
+  }
+}
+
+async function copyPixKey() {
+  const key = document.getElementById('pix-key-display').textContent;
+  const hint = document.getElementById('pix-copy-hint');
+  try {
+    await navigator.clipboard.writeText(key);
+    hint.textContent = 'Copiado!';
+    hint.style.color = 'var(--green-text)';
+  } catch (_) {
+    hint.textContent = 'Copie manualmente';
+  }
+  setTimeout(() => { hint.textContent = 'Toque para copiar'; hint.style.color = ''; }, 2000);
+}
+
+async function loadPixSettings() {
+  try {
+    const r = await fetch('/api/bolao?action=settings');
+    const { settings } = await r.json();
+    document.getElementById('pix-entry-value-input').value = settings.entry_value || '';
+    document.getElementById('pix-key-type').value = settings.pix_key_type || 'chave_aleatoria';
+    document.getElementById('pix-key-input').value = settings.pix_key || '';
+    document.getElementById('pix-name-input').value = settings.pix_name || '';
+    document.getElementById('pix-city-input').value = settings.pix_city || '';
+  } catch (_) {}
+}
+
+async function savePixSettings() {
+  const pixKey = document.getElementById('pix-key-input').value.trim();
+  const pixKeyType = document.getElementById('pix-key-type').value;
+  const pixName = document.getElementById('pix-name-input').value.trim();
+  const pixCity = document.getElementById('pix-city-input').value.trim();
+  const entryValue = parseFloat(document.getElementById('pix-entry-value-input').value) || 0;
+  const msg = document.getElementById('pix-settings-msg');
+  try {
+    const r = await fetch('/api/bolao?action=save-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, pixKey, pixKeyType, pixName, pixCity, entryValue })
+    });
+    if (r.ok) {
+      msg.textContent = 'Configurações salvas!';
+      msg.style.color = 'var(--green-text)';
+    } else {
+      const d = await r.json();
+      msg.textContent = d.error || 'Erro ao salvar.';
+      msg.style.color = 'var(--red-text)';
+    }
+  } catch (_) {
+    msg.textContent = 'Erro de conexão.';
+    msg.style.color = 'var(--red-text)';
+  }
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; }, 3000);
+}
+
+async function adminTogglePaid(targetNick, newPaid) {
+  try {
+    const r = await fetch('/api/bolao?action=mark-paid', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, targetNick, paid: newPaid })
+    });
+    if (r.ok) {
+      loadAdminPending();
+    } else {
+      const d = await r.json();
+      alert(d.error || 'Erro.');
+    }
+  } catch (_) {
     alert('Erro de conexão.');
   }
 }
