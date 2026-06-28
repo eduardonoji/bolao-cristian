@@ -62,7 +62,7 @@ module.exports = async function handler(req, res) {
         const adminEmail = adminRows[0]?.email || process.env.ADMIN_EMAIL;
         if (adminEmail) {
           const approveUrl = `${APP_URL}/api/auth?action=quick-approve&nick=${encodeURIComponent(nick)}&token=${encodeURIComponent(approvalToken)}`;
-          await sendEmail(adminEmail, `🔔 Bolão Snip — Novo cadastro: ${nick}`, buildAdminNotifEmail(nick, emailVal, approveUrl));
+          await sendEmail(adminEmail, `🔔 Bolão do Cristian — Novo cadastro: ${nick}`, buildAdminNotifEmail(nick, emailVal, approveUrl));
         }
       }
 
@@ -136,7 +136,7 @@ module.exports = async function handler(req, res) {
       }
       await sql`UPDATE users SET status = 'approved', paid = true, approval_token = NULL WHERE nick = ${nick}`;
       if (rows[0].email) {
-        await sendEmail(rows[0].email, '✅ Bolão Snip — Você foi aprovado!', buildApprovedEmail(nick));
+        await sendEmail(rows[0].email, '✅ Bolão do Cristian — Você foi aprovado!', buildApprovedEmail(nick));
       }
       return res.status(200).send(htmlPage('🎉 Aprovado!', `${nick} foi aprovado e já pode participar do bolão.`));
     }
@@ -178,7 +178,7 @@ module.exports = async function handler(req, res) {
       if (decision === 'approve') {
         const userRows = await sql`SELECT email FROM users WHERE nick = ${targetNick}`;
         if (userRows[0]?.email) {
-          await sendEmail(userRows[0].email, '✅ Bolão Snip — Você foi aprovado!', buildApprovedEmail(targetNick));
+          await sendEmail(userRows[0].email, '✅ Bolão do Cristian — Você foi aprovado!', buildApprovedEmail(targetNick));
         }
       }
       return res.status(200).json({ ok: true });
@@ -274,7 +274,7 @@ module.exports = async function handler(req, res) {
 function htmlPage(title, message) {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} – Bolão Snip</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} – Bolão do Cristian</title></head>
 <body style="background:#0f0f0f;color:#f0f0f0;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:24px">
   <div>
     <h2 style="margin:0 0 8px;font-size:22px">${title}</h2>
@@ -292,7 +292,7 @@ function buildAdminNotifEmail(nick, email, approveUrl) {
   <div style="max-width:480px;margin:0 auto;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
     <div style="margin-bottom:24px">
       <span style="font-size:28px">⚽</span>
-      <span style="font-size:18px;font-weight:700;color:#f0f0f0;margin-left:8px">Bolão Snip - 2026</span>
+      <span style="font-size:18px;font-weight:700;color:#f0f0f0;margin-left:8px">Bolão do Cristian - 2026</span>
     </div>
     <div style="background:#1a1a1a;border-radius:14px;padding:24px;border:1px solid rgba(255,255,255,0.08)">
       <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#f0f0f0">Novo cadastro 🔔</p>
@@ -317,12 +317,12 @@ function buildApprovedEmail(nick) {
   <div style="max-width:480px;margin:0 auto;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
     <div style="margin-bottom:24px">
       <span style="font-size:28px">⚽</span>
-      <span style="font-size:18px;font-weight:700;color:#f0f0f0;margin-left:8px">Bolão Snip - 2026</span>
+      <span style="font-size:18px;font-weight:700;color:#f0f0f0;margin-left:8px">Bolão do Cristian - 2026</span>
     </div>
     <div style="background:#1a1a1a;border-radius:14px;padding:24px;border:1px solid rgba(255,255,255,0.08)">
       <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#f0f0f0">Bem-vindo, ${nick}! 🎉</p>
       <p style="margin:0 0 20px;font-size:14px;color:#999;line-height:1.5">
-        Sua conta foi aprovada. Agora você pode fazer seus palpites no Bolão Snip!
+        Sua conta foi aprovada. Agora você pode fazer seus palpites no Bolão do Cristian!
       </p>
       <div style="text-align:center">
         <a href="${APP_URL}" style="display:inline-block;background:#3b82f6;color:#fff;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px">

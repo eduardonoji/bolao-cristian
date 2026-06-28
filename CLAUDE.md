@@ -1,4 +1,4 @@
-# Bolão Snip - 2026
+# Bolão do Cristian - 2026
 
 App de bolão para a Copa do Mundo 2026. Mobile-first, dark mode fixo. Hospedado na Vercel.
 
@@ -92,7 +92,7 @@ Função `calcPoints(p, game)` implementada identicamente em `bolao.js` (backend
 |----------|-------------|-----------|
 | `DATABASE_URL` | Sim | Injetada pela integração Neon+Vercel |
 | `RESEND_API_KEY` | Não | Chave do Resend para e-mails de lembrete |
-| `RESEND_FROM` | Não | Ex: `Bolão Snip <noreply@seudominio.com>` |
+| `RESEND_FROM` | Não | Ex: `Bolão do Cristian <noreply@seudominio.com>` |
 | `APP_URL` | Não | URL do app para o link no e-mail |
 | `CRON_SECRET` | Auto | Gerado pela Vercel, protege `/api/cron` |
 

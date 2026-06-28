@@ -40,16 +40,16 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
     </p>
     <table style="width:100%;border-collapse:collapse">${otherRows}</table>` : '';
 
-  const appUrl = process.env.APP_URL || 'https://bolao-snip.vercel.app';
+  const appUrl = process.env.APP_URL || 'https://bolao-cristian.vercel.app';
   const totalJogos = 1 + otherMissingGames.length;
   return {
-    subject: `⚽ Bolão Snip – Aposte nos jogos de hoje, ${nick}!`,
+    subject: `⚽ Bolão do Cristian – Aposte nos jogos de hoje, ${nick}!`,
     html: `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#0f0f0f">
   <div style="max-width:480px;margin:0 auto;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
     <div style="margin-bottom:24px">
-      <span style="font-size:18px;font-weight:700;color:#f0f0f0">Bolão Snip - 2026</span>
+      <span style="font-size:18px;font-weight:700;color:#f0f0f0">Bolão do Cristian - 2026</span>
     </div>
     <div style="background:#1a1a1a;border-radius:14px;padding:24px;border:1px solid rgba(255,255,255,0.08)">
       <p style="margin:0 0 8px;font-size:18px;font-weight:700;color:#f0f0f0">Opa, ${nick}! 👋</p>
@@ -66,7 +66,7 @@ function buildReminderEmail(nick, triggerGame, otherMissingGames) {
       </div>
     </div>
     <p style="margin:16px 0 0;font-size:12px;color:#555;text-align:center">
-      Você recebe este e-mail porque tem uma conta no Bolão Snip.
+      Você recebe este e-mail porque tem uma conta no Bolão do Cristian.
     </p>
   </div>
 </body>

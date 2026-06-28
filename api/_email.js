@@ -37,9 +37,9 @@ async function sendEmail(to, subject, html) {
     return false;
   }
   try {
-    const fromName = `=?UTF-8?B?${Buffer.from('Bolão Snip').toString('base64')}?=`;
+    const fromName = `=?UTF-8?B?${Buffer.from('Bolão do Cristian').toString('base64')}?=`;
     const from = `${fromName} <${process.env.ADMIN_EMAIL || 'me'}>`;
-    const appUrl = process.env.APP_URL || 'https://bolao-snip.vercel.app';
+    const appUrl = process.env.APP_URL || 'https://bolao-cristian.vercel.app';
     const accessToken = await getGmailAccessToken();
 
     const boundary = `----_bolaosnip_${Date.now()}`;
