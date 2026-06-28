@@ -1083,9 +1083,9 @@
             <span class="insights-bar-text" id="insights-bar-text"></span>
           </div>
         </div>
-        <div class="thiagotron-flame-host" onclick="openThiagotronModal()">
+        <div class="thiagotron-flame-host" onclick="openCristiantronModal()">
           <div class="thiagotron-avatar-wrap">
-            <img src="/thiagotron.png" class="thiagotron-avatar" alt="Thiagotron">
+            <img src="/cristiantron.png" class="thiagotron-avatar" alt="Cristiantron">
           </div>
         </div>
       </div>
@@ -1105,23 +1105,23 @@
       <div id="games-list"><div class="spinner">Carregando jogos...</div></div>
     </div>
 
-    <!-- Modal Thiagotron -->
-    <div class="thiagotron-overlay" id="thiagotron-overlay" onclick="if(event.target===this)closeThiagotronModal()">
+    <!-- Modal Cristiantron -->
+    <div class="thiagotron-overlay" id="thiagotron-overlay" onclick="if(event.target===this)closeCristiantronModal()">
       <div class="thiagotron-modal">
         <div class="modal-avatar-wrap">
-          <img src="/thiagotron.png" alt="Thiagotron">
+          <img src="/cristiantron.png" alt="Cristiantron">
         </div>
-        <h3>ThIAgotron</h3>
+        <h3>CristIAntron</h3>
         <p>Enquanto a maioria aposta na sorte, eu aposto em dados.<br><br>
         Analiso centenas de informações em segundos para encontrar as melhores oportunidades do dia. Com uma taxa histórica de acerto de 80%, posso gerar suas sugestões de apostas com apenas um clique.<br><br>
         Mas lembre-se: IA não prevê o futuro. Use com responsabilidade.<br><br>
-        Ao clicar em <strong>Manda ver ThIAgotron!</strong>, todos os jogos de hoje sem palpite e não iniciados serão apostados e salvos automaticamente.</p>
-        <div class="thiagotron-disclaimer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;flex-shrink:0"><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>A plataforma não se responsabiliza pelos palpites gerados pelo ThIAgotron.</div>
+        Ao clicar em <strong>Manda ver CristIAntron!</strong>, todos os jogos de hoje sem palpite e não iniciados serão apostados e salvos automaticamente.</p>
+        <div class="thiagotron-disclaimer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;flex-shrink:0"><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/></svg>A plataforma não se responsabiliza pelos palpites gerados pelo CristIAntron.</div>
         <div class="thiagotron-progress" id="thiagotron-progress"></div>
         <div class="thiagotron-done" id="thiagotron-done"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="vertical-align:-3px;margin-right:4px"><path d="M17 3.34a10 10 0 1 1 -14.995 8.984l-.005 -.324l.005 -.324a10 10 0 0 1 14.995 -8.336zm-1.293 5.953a1 1 0 0 0 -1.32 -.083l-.094 .083l-3.293 3.292l-1.293 -1.292l-.094 -.083a1 1 0 0 0 -1.403 1.403l.083 .094l2 2l.094 .083a1 1 0 0 0 1.226 0l.094 -.083l4 -4l.083 -.094a1 1 0 0 0 -.083 -1.32z"/></svg>Concluído!</div>
         <div class="modal-btns">
-          <button class="btn btn-thiagotron" id="btn-manda-ver" onclick="thiagotronBetAll()">Manda ver ThIAgotron!</button>
-          <button class="btn btn-sm" style="background:var(--bg-input);color:var(--text-secondary);width:100%;padding:12px" onclick="closeThiagotronModal()">Fechar</button>
+          <button class="btn btn-thiagotron" id="btn-manda-ver" onclick="thiagotronBetAll()">Manda ver CristIAntron!</button>
+          <button class="btn btn-sm" style="background:var(--bg-input);color:var(--text-secondary);width:100%;padding:12px" onclick="closeCristiantronModal()">Fechar</button>
         </div>
       </div>
     </div>
@@ -1157,7 +1157,7 @@
     <!-- Rules Tab -->
     <div id="tab-rules" class="tab-panel">
       <div style="position:relative;border-radius:14px;overflow:hidden;margin-bottom:16px;cursor:pointer;background:#000" onclick="toggleRulesVideo()">
-        <video id="rules-video" src="/thiago.mp4" autoplay loop muted playsinline style="width:100%;display:block;max-height:280px;object-fit:cover"></video>
+        <video id="rules-video" src="/cristian.mp4" autoplay loop muted playsinline style="width:100%;display:block;max-height:280px;object-fit:cover"></video>
         <div id="rules-video-btn" style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.55);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:opacity 0.2s">
           <svg id="rules-video-icon-muted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5l-5 5h-3v4h3l5 5v-14z"/><path d="M23 9l-6 6m0-6l6 6"/></svg>
           <svg id="rules-video-icon-sound" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M11 5l-5 5h-3v4h3l5 5v-14z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
@@ -2059,18 +2059,18 @@ async function savePalpite(gameId) {
   }
 }
 
-function openThiagotronModal() {
+function openCristiantronModal() {
   document.getElementById('thiagotron-overlay').classList.add('open');
   document.getElementById('thiagotron-progress').textContent = '';
   document.getElementById('thiagotron-done').classList.remove('visible');
   const btn = document.getElementById('btn-manda-ver');
   btn.style.display = '';
   btn.disabled = false;
-  btn.textContent = 'Manda ver ThIAgotron!';
+  btn.textContent = 'Manda ver CristIAntron!';
   document.body.style.overflow = 'hidden';
 }
 
-function closeThiagotronModal() {
+function closeCristiantronModal() {
   document.getElementById('thiagotron-overlay').classList.remove('open');
   document.body.style.overflow = '';
 }
