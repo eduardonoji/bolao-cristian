@@ -2936,6 +2936,13 @@ async function savePixSettings(btn) {
   const pixCity = document.getElementById('pix-city-input').value.trim();
   const entryValue = parseFloat(document.getElementById('pix-entry-value-input').value) || 0;
   const msg = document.getElementById('pix-settings-msg');
+  if (pixKey && entryValue <= 0) {
+    msg.textContent = 'Informe um valor maior que zero para a chave PIX.';
+    msg.style.color = 'var(--red-text)';
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    return;
+  }
   btn.disabled = true; btn.textContent = 'Salvando...'; btn.style.opacity = '0.7';
   try {
     const r = await fetch('/api/bolao?action=save-settings', {
