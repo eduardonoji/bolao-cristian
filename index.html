@@ -1045,6 +1045,7 @@
     <div class="pending-title">Aguardando liberação</div>
     <div id="pending-text" class="pending-text">Faça o pagamento via PIX abaixo para entrar no bolão.<br>Após confirmar o pagamento, o admin vai te liberar.</div>
     <div id="pending-payment" style="width:100%;max-width:320px;margin:16px auto 0">
+      <div id="pending-pix-loading" class="spinner">Carregando...</div>
       <div id="pending-pix-qr-wrap" style="display:none;text-align:center;margin-bottom:12px">
         <div id="pending-pix-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div>
       </div>
@@ -2793,9 +2794,12 @@ function buildPixPayload(key, name, city, value) {
 }
 
 async function loadPendingPayment() {
+  const loading = document.getElementById('pending-pix-loading');
+  loading.style.display = '';
   try {
     const r = await fetch('/api/bolao?action=settings');
     const { settings } = await r.json();
+    loading.style.display = 'none';
     const entryValue = parseFloat(settings.entry_value || '0') || 0;
     if (!settings.pix_key || entryValue <= 0) {
       document.getElementById('pending-text').textContent = 'Aguarde o admin liberar seu acesso.';
@@ -2812,7 +2816,7 @@ async function loadPendingPayment() {
       document.getElementById('pending-pix-qr').innerHTML = qr.createImgTag(4);
       document.getElementById('pending-pix-qr-wrap').style.display = 'block';
     } catch (_) {}
-  } catch (_) {}
+  } catch (_) { loading.style.display = 'none'; }
 }
 
 async function copyPendingPixKey() {
