@@ -1168,15 +1168,15 @@
         <h3>Pontuação</h3>
         <div class="pts-row">
           <span class="pts-row-label">Placar exato</span>
-          <span class="pts-row-val">+10 pts</span>
+          <span class="pts-row-val" id="rules-pts-exact">+10 pts</span>
         </div>
         <div class="pts-row">
           <span class="pts-row-label">Resultado certo (vitória/empate)</span>
-          <span class="pts-row-val">+5 pts</span>
+          <span class="pts-row-val" id="rules-pts-result">+5 pts</span>
         </div>
         <div class="pts-row">
           <span class="pts-row-label">Acertou gols de um time</span>
-          <span class="pts-row-val">+2 pts</span>
+          <span class="pts-row-val" id="rules-pts-goal">+2 pts</span>
         </div>
       </div>
       <div class="rules-card">
@@ -2866,6 +2866,12 @@ async function copyPixKey() {
 
 let scoringPts = { exact: 10, result: 5, goal: 2 };
 
+function updateRulesPts() {
+  document.getElementById('rules-pts-exact').textContent  = `+${scoringPts.exact} pts`;
+  document.getElementById('rules-pts-result').textContent = `+${scoringPts.result} pts`;
+  document.getElementById('rules-pts-goal').textContent   = `+${scoringPts.goal} pts`;
+}
+
 async function loadAllSettings() {
   try {
     const r = await fetch('/api/bolao?action=settings');
@@ -2875,6 +2881,7 @@ async function loadAllSettings() {
       result: parseInt(settings.pts_result || '5')  || 5,
       goal:   parseInt(settings.pts_goal   || '2')  || 2,
     };
+    updateRulesPts();
     return settings;
   } catch (_) { return {}; }
 }
@@ -2903,7 +2910,7 @@ async function saveScoringSettings(btn) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, ptsExact, ptsResult, ptsGoal })
     });
-    if (r.ok) scoringPts = { exact: ptsExact, result: ptsResult, goal: ptsGoal };
+    if (r.ok) { scoringPts = { exact: ptsExact, result: ptsResult, goal: ptsGoal }; updateRulesPts(); }
     msg.textContent = r.ok ? 'Pontuação salva!' : (await r.json()).error || 'Erro.';
     msg.style.color = r.ok ? 'var(--green-text)' : 'var(--red-text)';
   } catch (_) {
