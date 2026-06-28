@@ -1043,7 +1043,7 @@
   <div id="screen-pending" class="screen">
     <img src="/boleiro.png?v=2" style="width:160px;height:160px;border-radius:50%;object-fit:cover;object-position:center 25%;border:3px solid rgba(255,255,255,0.1);margin-bottom:8px">
     <div class="pending-title">Aguardando liberação</div>
-    <div class="pending-text">Faça o pagamento via PIX abaixo para entrar no bolão.<br>Após confirmar o pagamento, o admin vai te liberar.</div>
+    <div id="pending-text" class="pending-text">Faça o pagamento via PIX abaixo para entrar no bolão.<br>Após confirmar o pagamento, o admin vai te liberar.</div>
     <div id="pending-payment" style="width:100%;max-width:320px;margin:16px auto 0">
       <div id="pending-pix-qr-wrap" style="display:none;text-align:center;margin-bottom:12px">
         <div id="pending-pix-qr" style="display:inline-block;background:#fff;padding:8px;border-radius:8px"></div>
@@ -2797,7 +2797,10 @@ async function loadPendingPayment() {
     const r = await fetch('/api/bolao?action=settings');
     const { settings } = await r.json();
     const entryValue = parseFloat(settings.entry_value || '0') || 0;
-    if (!settings.pix_key || entryValue <= 0) return;
+    if (!settings.pix_key || entryValue <= 0) {
+      document.getElementById('pending-text').textContent = 'Aguarde o admin liberar seu acesso.';
+      return;
+    }
     document.getElementById('pending-pix-value').textContent = `R$ ${entryValue.toFixed(2).replace('.', ',')}`;
     document.getElementById('pending-pix-key-display').textContent = settings.pix_key;
     document.getElementById('pending-pix-key-info').style.display = 'block';
