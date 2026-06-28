@@ -132,7 +132,9 @@ module.exports = async function handler(req, res) {
       const settingsMap = {};
       for (const r of settingsRows) settingsMap[r.key] = r.value;
       const entryValue = parseFloat(settingsMap.entry_value || '0') || 0;
-      const prize = (parseInt(paidCountRows[0].count) || 0) * entryValue;
+      const prize = settingsMap.payment_mode === 'fixed_prize'
+        ? (parseFloat(settingsMap.prize_value) || 0)
+        : (parseInt(paidCountRows[0].count) || 0) * entryValue;
       const pts = ptsFromSettings(settingsMap);
 
       const byNick = {};
@@ -268,10 +270,12 @@ module.exports = async function handler(req, res) {
     }
 
     if (req.method === 'POST' && action === 'save-settings') {
-      const { adminNick, adminPass, pixKey, pixKeyType, pixName, pixCity, entryValue, ptsExact, ptsResult, ptsGoal } = req.body;
+      const { adminNick, adminPass, paymentMode, prizeValue, pixKey, pixKeyType, pixName, pixCity, entryValue, ptsExact, ptsResult, ptsGoal } = req.body;
       const admin = await verifyUser(adminNick, adminPass);
       if (!admin || admin.role !== 'admin') return res.status(403).json({ error: 'Acesso negado' });
       const entries = [
+        ['payment_mode', paymentMode === 'fixed_prize' ? 'fixed_prize' : 'per_person'],
+        ['prize_value', String(parseFloat(prizeValue) || 0)],
         ['pix_key', pixKey || ''],
         ['pix_key_type', pixKeyType || 'chave_aleatoria'],
         ['pix_name', pixName || ''],

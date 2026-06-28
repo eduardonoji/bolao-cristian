@@ -1266,31 +1266,43 @@
           <div class="admin-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
         </div>
         <div id="body-pix" class="admin-section-body">
-          <div class="form-group">
-            <label class="form-label">Valor por pessoa (R$)</label>
-            <input id="pix-entry-value-input" class="form-input" type="number" min="0" step="0.01" placeholder="20.00">
+          <div style="display:flex;gap:8px;margin-bottom:16px">
+            <button id="mode-btn-per-person" onclick="setPaymentMode('per_person')" style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid rgba(59,130,246,0.5);background:rgba(59,130,246,0.15);color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer">Cobrança por pessoa</button>
+            <button id="mode-btn-fixed-prize" onclick="setPaymentMode('fixed_prize')" style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text-muted);font-size:12px;font-weight:700;cursor:pointer">Prêmio fixo</button>
           </div>
-          <div class="form-group">
-            <label class="form-label">Tipo da chave PIX</label>
-            <select id="pix-key-type" class="form-input" style="background:var(--bg-input);color:var(--text-primary)">
-              <option value="chave_aleatoria">Chave aleatória</option>
-              <option value="email">E-mail</option>
-              <option value="telefone">Telefone</option>
-              <option value="cpf">CPF</option>
-              <option value="cnpj">CNPJ</option>
-            </select>
+          <div id="pix-fields-group">
+            <div class="form-group">
+              <label class="form-label">Valor por pessoa (R$)</label>
+              <input id="pix-entry-value-input" class="form-input" type="number" min="0" step="0.01" placeholder="20.00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo da chave PIX</label>
+              <select id="pix-key-type" class="form-input" style="background:var(--bg-input);color:var(--text-primary)">
+                <option value="chave_aleatoria">Chave aleatória</option>
+                <option value="email">E-mail</option>
+                <option value="telefone">Telefone</option>
+                <option value="cpf">CPF</option>
+                <option value="cnpj">CNPJ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Chave PIX</label>
+              <input id="pix-key-input" class="form-input" type="text" placeholder="sua chave pix">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nome do recebedor <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
+              <input id="pix-name-input" class="form-input" type="text" placeholder="Seu Nome">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Cidade <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
+              <input id="pix-city-input" class="form-input" type="text" placeholder="Manaus">
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Chave PIX</label>
-            <input id="pix-key-input" class="form-input" type="text" placeholder="sua chave pix">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Nome do recebedor <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
-            <input id="pix-name-input" class="form-input" type="text" placeholder="Seu Nome">
-          </div>
-          <div class="form-group" style="margin-bottom:0">
-            <label class="form-label">Cidade <span style="color:var(--text-muted);font-weight:400">(para o QR code)</span></label>
-            <input id="pix-city-input" class="form-input" type="text" placeholder="Manaus">
+          <div id="prize-fields-group" style="display:none">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Valor do prêmio (R$)</label>
+              <input id="pix-prize-value-input" class="form-input" type="number" min="0.01" step="0.01" placeholder="500.00">
+            </div>
           </div>
           <button class="btn btn-primary" style="margin-top:16px" onclick="savePixSettings(this)">Salvar</button>
           <div id="pix-settings-msg" style="display:none;margin-top:10px;font-size:13px;font-weight:600;text-align:center"></div>
@@ -2801,7 +2813,7 @@ async function loadPendingPayment() {
     const { settings } = await r.json();
     loading.style.display = 'none';
     const entryValue = parseFloat(settings.entry_value || '0') || 0;
-    if (!settings.pix_key || entryValue <= 0) {
+    if (settings.payment_mode === 'fixed_prize' || !settings.pix_key || entryValue <= 0) {
       document.getElementById('pending-text').textContent = 'Aguarde o admin liberar seu acesso.';
       return;
     }
@@ -2872,6 +2884,22 @@ async function copyPixKey() {
 }
 
 let scoringPts = { exact: 10, result: 5, goal: 2 };
+let _paymentMode = 'per_person';
+
+function setPaymentMode(mode) {
+  _paymentMode = mode;
+  const isPerPerson = mode === 'per_person';
+  document.getElementById('pix-fields-group').style.display = isPerPerson ? '' : 'none';
+  document.getElementById('prize-fields-group').style.display = isPerPerson ? 'none' : '';
+  const btnPer = document.getElementById('mode-btn-per-person');
+  const btnFixed = document.getElementById('mode-btn-fixed-prize');
+  btnPer.style.borderColor   = isPerPerson ? 'rgba(59,130,246,0.5)' : 'rgba(255,255,255,0.1)';
+  btnPer.style.background    = isPerPerson ? 'rgba(59,130,246,0.15)' : 'transparent';
+  btnPer.style.color         = isPerPerson ? '#93c5fd' : 'var(--text-muted)';
+  btnFixed.style.borderColor = isPerPerson ? 'rgba(255,255,255,0.1)' : 'rgba(59,130,246,0.5)';
+  btnFixed.style.background  = isPerPerson ? 'transparent' : 'rgba(59,130,246,0.15)';
+  btnFixed.style.color       = isPerPerson ? 'var(--text-muted)' : '#93c5fd';
+}
 
 function updateRulesPts() {
   document.getElementById('rules-pts-exact').textContent  = `+${scoringPts.exact} pts`;
@@ -2895,6 +2923,8 @@ async function loadAllSettings() {
 
 async function loadPixSettings() {
   const settings = await loadAllSettings();
+  setPaymentMode(settings.payment_mode === 'fixed_prize' ? 'fixed_prize' : 'per_person');
+  document.getElementById('pix-prize-value-input').value = settings.prize_value || '';
   document.getElementById('pix-entry-value-input').value = settings.entry_value || '0.01';
   document.getElementById('pix-key-type').value = settings.pix_key_type || 'chave_aleatoria';
   document.getElementById('pix-key-input').value = settings.pix_key || '';
@@ -2930,13 +2960,22 @@ async function saveScoringSettings(btn) {
 }
 
 async function savePixSettings(btn) {
+  const paymentMode = _paymentMode;
+  const prizeValue = parseFloat(document.getElementById('pix-prize-value-input').value) || 0;
   const pixKey = document.getElementById('pix-key-input').value.trim();
   const pixKeyType = document.getElementById('pix-key-type').value;
   const pixName = document.getElementById('pix-name-input').value.trim();
   const pixCity = document.getElementById('pix-city-input').value.trim();
   const entryValue = parseFloat(document.getElementById('pix-entry-value-input').value) || 0;
   const msg = document.getElementById('pix-settings-msg');
-  if (pixKey && entryValue <= 0) {
+  if (paymentMode === 'fixed_prize' && prizeValue <= 0) {
+    msg.textContent = 'Informe um valor do prêmio maior que zero.';
+    msg.style.color = 'var(--red-text)';
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    return;
+  }
+  if (paymentMode === 'per_person' && pixKey && entryValue <= 0) {
     msg.textContent = 'Informe um valor maior que zero para a chave PIX.';
     msg.style.color = 'var(--red-text)';
     msg.style.display = 'block';
@@ -2948,7 +2987,7 @@ async function savePixSettings(btn) {
     const r = await fetch('/api/bolao?action=save-settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, pixKey, pixKeyType, pixName, pixCity, entryValue })
+      body: JSON.stringify({ adminNick: session.nick, adminPass: session.pass, paymentMode, prizeValue, pixKey, pixKeyType, pixName, pixCity, entryValue })
     });
     if (r.ok) {
       msg.textContent = 'Configurações salvas!';
