@@ -2,8 +2,8 @@ const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
 const { sendEmail } = require('./_email');
 
-const ADMIN_NICK = 'eduardo';
-const APP_URL = process.env.APP_URL || 'https://bolao-snip.vercel.app';
+const ADMIN_NICK = 'Cristian';
+const APP_URL = process.env.APP_URL || 'https://bolao-cristian.vercel.app';
 
 async function getDb() {
   const sql = neon(process.env.DATABASE_URL);
@@ -75,7 +75,13 @@ module.exports = async function handler(req, res) {
       const encoded = Buffer.from(pass).toString('base64');
       const rows = await sql`SELECT nick, status, role, email, email_reminders, paid, avatar FROM users WHERE nick = ${nick} AND pass = ${encoded}`;
       if (!rows.length) return res.status(401).json({ error: 'Nick ou senha incorretos' });
-      return res.status(200).json(rows[0]);
+      const user = rows[0];
+      if (nick === ADMIN_NICK && (user.status !== 'approved' || user.role !== 'admin')) {
+        await sql`UPDATE users SET status = 'approved', role = 'admin' WHERE nick = ${nick}`;
+        user.status = 'approved';
+        user.role = 'admin';
+      }
+      return res.status(200).json(user);
     }
 
     if (req.method === 'POST' && action === 'update-profile') {
