@@ -2565,7 +2565,7 @@ function renderAdminAll(users) {
         <div style="font-size:12px;color:${STATUS_COLOR[u.status] || 'var(--text-muted)'}">
           ${esc(STATUS_LABEL[u.status] || u.status)}${u.email ? ' · ' + esc(u.email) : ''}
         </div>
-        ${u.role === 'admin' ? `
+        ${u.role === 'admin' && _paymentMode === 'per_person' ? `
         <label style="display:inline-flex;align-items:center;gap:7px;margin-top:8px;cursor:pointer;user-select:none" onclick="adminTogglePaid('${esc(u.nick)}', ${!u.paid})">
           <span style="width:17px;height:17px;border-radius:4px;border:2px solid ${u.paid ? '#4ade80' : 'rgba(255,255,255,0.25)'};background:${u.paid ? '#4ade80' : 'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s">
             ${u.paid ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-9"/></svg>' : ''}
@@ -2575,10 +2575,10 @@ function renderAdminAll(users) {
       </div>
       ${u.role !== 'admin' ? `
       <div class="admin-actions" style="flex-wrap:nowrap;align-items:center">
-        ${u.paid
+        ${_paymentMode === 'per_person' ? (u.paid
           ? `<button class="btn btn-sm" style="background:rgba(34,197,94,0.15);color:#4ade80;white-space:nowrap" data-nick="${esc(u.nick)}" onclick="adminTogglePaid(this.dataset.nick, false)">${icon('check',13)} Pago</button>`
           : `<button class="btn btn-sm" style="background:rgba(251,191,36,0.15);color:#fbbf24;white-space:nowrap" data-nick="${esc(u.nick)}" onclick="openRevokeModal('${esc(u.nick)}')">$ Pendente</button>`
-        }
+        ) : ''}
         <button class="btn btn-sm" style="background:rgba(255,255,255,0.07);color:var(--text-secondary);padding:8px 10px" title="Editar usuário" data-nick="${esc(u.nick)}" data-email="${esc(u.email||'')}" data-avatar="${u.avatar ? '1' : ''}" onclick="openEditUserModal(this.dataset.nick,this.dataset.email,this.dataset.avatar)">${icon('pencil',14)}</button>
         <button class="btn btn-sm btn-delete" style="padding:8px 10px" title="Excluir conta" data-nick="${esc(u.nick)}" onclick="adminDeleteUser(this.dataset.nick)">${icon('trash',14)}</button>
       </div>` : ''}
