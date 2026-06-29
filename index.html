@@ -572,6 +572,81 @@
       50% { opacity: 0.5; }
     }
 
+    .game-card-brasil {
+      background: linear-gradient(160deg, rgba(0,110,38,0.18) 0%, var(--bg-card) 48%, rgba(255,218,0,0.06) 100%);
+      border-color: rgba(255, 215, 0, 0.28);
+      position: relative;
+      overflow: hidden;
+    }
+    .game-card-brasil::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #009c3b 0%, #ffdf00 40%, #009c3b 70%, #ffdf00 100%);
+    }
+    .badge-brasil {
+      background: linear-gradient(135deg, rgba(0,130,45,0.35), rgba(255,210,0,0.2));
+      color: #fde047;
+      border: 1px solid rgba(255,215,0,0.3);
+      letter-spacing: 0.08em;
+    }
+    .team-name-brasil {
+      color: #fde047;
+    }
+
+    .bet-toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.82);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1100;
+      background: var(--bg-card);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 22px;
+      padding: 28px 32px 24px;
+      text-align: center;
+      min-width: 220px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(34,197,94,0.08) inset;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+    }
+    .bet-toast.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+    .bet-toast-close {
+      position: absolute;
+      top: 10px; right: 12px;
+      background: none; border: none;
+      color: var(--text-muted); cursor: pointer;
+      font-size: 20px; line-height: 1;
+      padding: 2px 4px;
+      border-radius: 6px;
+      transition: color 0.15s;
+    }
+    .bet-toast-close:hover { color: var(--text-secondary); }
+    .bet-toast-icon {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(34,197,94,0.13);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+    }
+    .bet-toast.visible .bet-toast-icon {
+      animation: checkPop 0.3s cubic-bezier(.36,1.56,.64,1) both;
+    }
+    @keyframes checkPop {
+      from { transform: scale(0.4); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    .bet-toast-label {
+      font-size: 16px; font-weight: 700;
+      color: var(--text-primary);
+    }
+
     .game-teams {
       display: flex;
       align-items: center;
@@ -1963,6 +2038,7 @@ function renderGames() {
 }
 
 function renderGameCard(g) {
+  const isBrasil = g.home === 'Brasil' || g.away === 'Brasil';
   const d = new Date(g.datetime);
   const time = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus', hour: '2-digit', minute: '2-digit' });
   const p = myPalpitesCache[g.id];
@@ -1972,6 +2048,8 @@ function renderGameCard(g) {
     badgeHtml = `<span class="badge badge-live">AO VIVO</span>`;
   } else if (g.status === 'completed') {
     badgeHtml = `<span class="badge badge-done">Encerrado</span>`;
+  } else if (isBrasil) {
+    badgeHtml = `<span class="badge badge-brasil">★ HOJE ★</span>`;
   } else {
     badgeHtml = `<span class="badge badge-today">Hoje</span>`;
   }
@@ -2055,25 +2133,40 @@ function renderGameCard(g) {
   }
 
   return `
-    <div class="game-card">
+    <div class="game-card${isBrasil ? ' game-card-brasil' : ''}">
       <div class="game-header">
         <span class="game-time">${icon('clock', 12)} ${time}</span>
         ${badgeHtml}
       </div>
       <div class="game-teams">
         <div class="team-block">
-          <span class="team-name">${g.home}</span>
+          <span class="team-name${g.home === 'Brasil' ? ' team-name-brasil' : ''}">${g.home}</span>
           <span class="team-flag">${teamFlag(g.home)}</span>
         </div>
         <span class="vs-sep">vs</span>
         <div class="team-block">
-          <span class="team-name">${g.away}</span>
+          <span class="team-name${g.away === 'Brasil' ? ' team-name-brasil' : ''}">${g.away}</span>
           <span class="team-flag">${teamFlag(g.away)}</span>
         </div>
       </div>
       ${scoreHtml}
       ${palpiteHtml}
     </div>`;
+}
+
+let _betToastTimer = null;
+function showBetToast(label) {
+  const el = document.getElementById('bet-toast');
+  document.getElementById('bet-toast-label').textContent = label;
+  el.classList.remove('visible');
+  void el.offsetWidth;
+  el.classList.add('visible');
+  if (_betToastTimer) clearTimeout(_betToastTimer);
+  _betToastTimer = setTimeout(closeBetToast, 1500);
+}
+function closeBetToast() {
+  document.getElementById('bet-toast').classList.remove('visible');
+  if (_betToastTimer) { clearTimeout(_betToastTimer); _betToastTimer = null; }
 }
 
 async function savePalpite(gameId) {
@@ -2083,6 +2176,7 @@ async function savePalpite(gameId) {
     alert('Preencha os dois placares corretamente.');
     return;
   }
+  const isUpdate = !!myPalpitesCache[gameId];
   const btn = document.getElementById('save-btn-' + gameId);
   if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin" style="display:inline-block">${icon('loader',14)}</span> Salvando...`; }
   try {
@@ -2099,6 +2193,7 @@ async function savePalpite(gameId) {
     }
     myPalpitesCache[gameId] = { h, a };
     renderGames();
+    showBetToast(isUpdate ? 'Palpite atualizado!' : 'Palpite salvo!');
   } catch (e) {
     alert('Erro de conexão.');
   }
@@ -2348,6 +2443,8 @@ function renderProfile(data) {
     statChip('erros',      miss,   '#f87171'),
   ].join('');
 
+  const isOwnProfile = data.nick === session.nick;
+
   const rows = data.bets.map(b => {
     const d = new Date(b.datetime);
     const time = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus', hour: '2-digit', minute: '2-digit' });
@@ -2356,15 +2453,21 @@ function renderProfile(data) {
     const hasResult = b.homeScore !== null && b.awayScore !== null;
     const resultLabel = b.status === 'in_progress' ? 'Ao vivo' : 'Resultado';
     const resultVal = hasResult ? `${b.homeScore}×${b.awayScore}` : '—';
+    const hidePalpite = !isOwnProfile && b.status === 'scheduled';
+    const palpiteVal = hidePalpite ? '—' : `${b.palpiteH}×${b.palpiteA}`;
+    const palpiteLabel = hidePalpite ? 'Oculto' : 'Palpite';
     return `
       <div class="bet-row">
         <div class="bet-info">
-          <div class="bet-teams">${esc(b.home)} × ${esc(b.away)}${b.status === 'in_progress' ? ' <span class="bet-live">●</span>' : ''}</div>
+          <div style="display:flex;align-items:center;gap:5px;min-width:0">
+            <div class="bet-teams">${esc(b.home)} × ${esc(b.away)}</div>
+            ${b.status === 'in_progress' ? '<span class="bet-live" style="flex-shrink:0">●</span>' : ''}
+          </div>
           <div class="bet-meta">Grupo ${esc(b.group)} · ${date} ${time}</div>
         </div>
         <div class="bet-col">
-          <span class="bet-score-label">Palpite</span>
-          <span class="bet-score-val">${b.palpiteH}×${b.palpiteA}</span>
+          <span class="bet-score-label">${palpiteLabel}</span>
+          <span class="bet-score-val">${palpiteVal}</span>
         </div>
         <div class="bet-col">
           <span class="bet-score-label">${resultLabel}</span>
@@ -3107,5 +3210,12 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 </script>
+<div id="bet-toast" class="bet-toast">
+  <button class="bet-toast-close" onclick="closeBetToast()">×</button>
+  <div class="bet-toast-icon">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="#22c55e" stroke="none"><path d="M17 3.34a10 10 0 1 1 -14.995 8.984l-.005 -.324l.005 -.324a10 10 0 0 1 14.995 -8.336zm-1.293 5.953a1 1 0 0 0 -1.32 -.083l-.094 .083l-3.293 3.292l-1.293 -1.292l-.094 -.083a1 1 0 0 0 -1.403 1.403l.083 .094l2 2l.094 .083a1 1 0 0 0 1.226 0l.094 -.083l4 -4l.083 -.094a1 1 0 0 0 -.083 -1.32z"/></svg>
+  </div>
+  <div class="bet-toast-label" id="bet-toast-label">Palpite salvo!</div>
+</div>
 </body>
 </html>
